@@ -64,6 +64,8 @@ char* get_storage_config(engine_config_t *config)
     char *cstr = new char[s.size() + 1];
     s.copy(cstr, s.size() + 1);
     cstr[s.size()] = '\0';
+
+    return cstr;
 }
 
 void set_max_locations_trip(engine_config_t *config, int value)

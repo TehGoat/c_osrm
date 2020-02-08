@@ -4,6 +4,7 @@
 #include "osrm/nearest_parameters.hpp"
 
 #include <iostream>
+#include <engine/approach.hpp>
 
 
 using namespace osrm;
@@ -36,13 +37,49 @@ void osrm_destroy(c_osrm_t *c_osrm)
     free(c_osrm);
 }
 
-enum status osrm_nearest(c_osrm_t *c_osrm, double lat, double lon, unsigned number_of_results, nearest_result_t** result)
+enum status osrm_nearest(c_osrm_t *c_osrm, nearest_request_t* request, nearest_result_t** result)
 {
     OSRM *osrm =static_cast<OSRM*>(c_osrm->obj);
 
     NearestParameters parameters;
-    parameters.coordinates.emplace_back(util::FloatLongitude{lon}, util::FloatLatitude{lat});
-    parameters.number_of_results = number_of_results;
+    parameters.coordinates.emplace_back(util::FloatLongitude{request->longitude}, util::FloatLatitude{request->latitude});
+    parameters.number_of_results = request->number_of_results;
+
+    if(request->radius > 0)
+    {
+        parameters.radiuses.emplace_back(request->radius);
+    }
+
+    if(request->bearing != nullptr)
+    {
+        engine::Bearing bearing{};
+        bearing.bearing = request->bearing->bearing;
+        bearing.range = request->bearing->range;
+        parameters.bearings.emplace_back(bearing);
+    }
+
+    if(request->generate_hints == 0)
+    {
+        parameters.generate_hints = false;
+    }
+
+    if(request->hint != nullptr)
+    {
+        parameters.exclude.emplace_back(request->hint);
+    }
+
+    if(request->approach == CURB)
+    {
+        parameters.approaches.emplace_back(engine::Approach::CURB);
+    }
+
+    if(request->excluded != nullptr)
+    {
+        parameters.exclude.emplace_back(request->excluded);
+    }
+
+
+
 
     engine::api::ResultT osr_result = json::Object();
 
@@ -64,6 +101,7 @@ enum status osrm_nearest(c_osrm_t *c_osrm, double lat, double lon, unsigned numb
     return_result->code[code.size()] = '\0';
     if (status == Status::Ok)
     {
+        return_result->message = nullptr;
         const auto waypoints = json_result.values["waypoints"].get<json::Array>().values;
 
         if(waypoints.empty())
@@ -119,6 +157,44 @@ enum status osrm_nearest(c_osrm_t *c_osrm, double lat, double lon, unsigned numb
 
         return status::Error;
     }
+}
+
+nearest_request_t* nearest_request_create(double latitude, double longitude)
+{
+    nearest_request_t* request = static_cast<nearest_request_t *>(malloc(sizeof(nearest_request_t)));
+    request->latitude = latitude;
+    request->longitude = longitude;
+    request->generate_hints = 1;
+    request->bearing = nullptr;
+    request->hint = nullptr;
+    request->excluded = nullptr;
+
+    return request;
+}
+
+void nearest_request_destroy(nearest_request_t *value)
+{
+    if(value == nullptr)
+    {
+        return;
+    }
+
+    if(value->bearing != nullptr)
+    {
+        free(value->bearing);
+    }
+
+    if(value->hint != nullptr)
+    {
+        free(value->hint);
+    }
+
+    if(value->excluded != nullptr)
+    {
+        free(value->excluded);
+    }
+
+    free(value);
 }
 
 void nearest_result_destroy(nearest_result_t *value)
