@@ -168,6 +168,7 @@ nearest_request_t* nearest_request_create(double latitude, double longitude)
     request->bearing = nullptr;
     request->hint = nullptr;
     request->excluded = nullptr;
+    request->number_of_results = 1;
 
     return request;
 }
