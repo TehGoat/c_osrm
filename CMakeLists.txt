@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.15)
+cmake_minimum_required(VERSION 3.10)
 project(c_osrm)
 
 set(CMAKE_CXX_STANDARD 14)
@@ -6,7 +6,7 @@ set(CMAKE_CXX_STANDARD 14)
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 link_directories(${LibOSRM_LIBRARY_DIRS})
-add_library(c_osrm SHARED c_osrm.cpp c_osrm.h engine_config.cpp engine_config.h)
+add_library(c_osrm SHARED c_osrm.cpp c_osrm.h engine_config.cpp engine_config.h parameters.h)
 
 find_package(LibOSRM REQUIRED)
 

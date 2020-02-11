@@ -41,44 +41,49 @@ enum status osrm_nearest(c_osrm_t *c_osrm, nearest_request_t* request, nearest_r
 {
     OSRM *osrm =static_cast<OSRM*>(c_osrm->obj);
 
+    double d = *request->general_options.radiuses;
+    printf("%f\n", d);
+
     NearestParameters parameters;
-    parameters.coordinates.emplace_back(util::FloatLongitude{request->longitude}, util::FloatLatitude{request->latitude});
+    parameters.coordinates.emplace_back(util::FloatLongitude{request->general_options.coordinates.longitude}, util::FloatLatitude{request->general_options.coordinates.latitude});
     parameters.number_of_results = request->number_of_results;
 
-    if(request->radius > 0)
+    if(request->general_options.radiuses != NULL )
     {
-        parameters.radiuses.emplace_back(request->radius);
+        parameters.radiuses.emplace_back(*request->general_options.radiuses);
     }
 
-    if(request->bearing != nullptr)
+    if(request->general_options.bearings != NULL)
     {
         engine::Bearing bearing{};
-        bearing.bearing = request->bearing->bearing;
-        bearing.range = request->bearing->range;
+        bearing.bearing = request->general_options.bearings->bearing;
+        bearing.range = request->general_options.bearings->range;
         parameters.bearings.emplace_back(bearing);
     }
 
-    if(request->generate_hints == 0)
+    if(request->general_options.generate_hints == FALSE)
     {
         parameters.generate_hints = false;
     }
 
-    if(request->hint != nullptr)
+    if(request->general_options.hints != NULL)
     {
-        parameters.exclude.emplace_back(request->hint);
+        parameters.exclude.emplace_back(request->general_options.hints);
     }
 
-    if(request->approach == CURB)
+    if(request->general_options.approaches != NULL &&
+        *request->general_options.approaches == CURB)
     {
         parameters.approaches.emplace_back(engine::Approach::CURB);
     }
 
-    if(request->excluded != nullptr)
+    if(request->general_options.exclude != NULL)
     {
-        parameters.exclude.emplace_back(request->excluded);
+//        for(int i = 0; i < request->general_options.number_of_excludes; i++)
+//        {
+//            parameters.exclude.emplace_back(request->general_options.exclude[i]);
+//        }
     }
-
-
 
 
     engine::api::ResultT osr_result = json::Object();
@@ -87,7 +92,7 @@ enum status osrm_nearest(c_osrm_t *c_osrm, nearest_request_t* request, nearest_r
 
     auto &json_result = osr_result.get<json::Object>();
 
-    if(*result != nullptr)
+    if(*result != NULL)
     {
         free(result);
     }
@@ -101,7 +106,7 @@ enum status osrm_nearest(c_osrm_t *c_osrm, nearest_request_t* request, nearest_r
     return_result->code[code.size()] = '\0';
     if (status == Status::Ok)
     {
-        return_result->message = nullptr;
+        return_result->message = NULL;
         const auto waypoints = json_result.values["waypoints"].get<json::Array>().values;
 
         if(waypoints.empty())
@@ -109,9 +114,9 @@ enum status osrm_nearest(c_osrm_t *c_osrm, nearest_request_t* request, nearest_r
             return status::Ok;
         }
 
-        return_result->waypoints = static_cast<waypoint_t *>(malloc(sizeof(waypoint_t) * waypoints.size()));
+        return_result->waypoints = static_cast<nearest_waypoint_t  *>(malloc(sizeof(nearest_waypoint_t) * waypoints.size()));
         return_result->number_of_waypoints = waypoints.size();
-        printf("5");
+
         for(int i = 0; i < waypoints.size(); i++)
         {
             auto waypoint = waypoints[i].get<json::Object>();
@@ -162,12 +167,16 @@ enum status osrm_nearest(c_osrm_t *c_osrm, nearest_request_t* request, nearest_r
 nearest_request_t* nearest_request_create(double latitude, double longitude)
 {
     nearest_request_t* request = static_cast<nearest_request_t *>(malloc(sizeof(nearest_request_t)));
-    request->latitude = latitude;
-    request->longitude = longitude;
-    request->generate_hints = 1;
-    request->bearing = nullptr;
-    request->hint = nullptr;
-    request->excluded = nullptr;
+    request->general_options.number_of_coordinates = 1;
+    request->general_options.coordinates.latitude = latitude;
+    request->general_options.coordinates.longitude = longitude;
+    request->general_options.generate_hints = TRUE;
+    request->general_options.bearings = NULL;
+    request->general_options.hints = NULL;
+    request->general_options.exclude = NULL;
+    request->general_options.number_of_excludes = 0;
+    request->general_options.radiuses = NULL;
+    request->general_options.approaches = NULL;
     request->number_of_results = 1;
 
     return request;
@@ -180,22 +189,75 @@ void nearest_request_destroy(nearest_request_t *value)
         return;
     }
 
-    if(value->bearing != nullptr)
-    {
-        free(value->bearing);
-    }
-
-    if(value->hint != nullptr)
-    {
-        free(value->hint);
-    }
-
-    if(value->excluded != nullptr)
-    {
-        free(value->excluded);
-    }
+    general_options_destroy(value->general_options);
 
     free(value);
+}
+
+void general_options_destroy(general_options_t& value)
+{
+//    for(int i = 0; i < value.number_of_coordinates; i++)
+//    {
+//        if(value.bearings != nullptr && value.bearings[i] != nullptr)
+//        {
+//            free(value.bearings[i]);
+//        }
+//
+//        if(value.hints != nullptr && value.hints[i] != nullptr)
+//        {
+//            free(value.hints[i]);
+//        }
+//
+//        if(value.coordinates != nullptr && value.coordinates[i] != nullptr)
+//        {
+//            free(value.coordinates[i]);
+//        }
+//
+//        if(value.radiuses != nullptr && value.radiuses[i] != nullptr)
+//        {
+//            free(value.radiuses[i]);
+//        }
+//
+//        if(value.approaches != nullptr && value.approaches[i] != nullptr)
+//        {
+//            free(value.approaches[i]);
+//        }
+//    }
+
+//    if(value.bearings != nullptr)
+//    {
+//        free(value.bearings);
+//    }
+//
+//    if(value.hints != nullptr)
+//    {
+//        free(value.hints);
+//    }
+////    if(value.coordinates != nullptr)
+////    {
+////        free(value.coordinates);
+////    }
+//
+//    if(value.radiuses != nullptr)
+//    {
+//        free(value.radiuses);
+//    }
+//
+//    if(value.approaches != nullptr)
+//    {
+//        free(value.approaches);
+//    }
+//
+//
+//    if(value.exclude != nullptr)
+//    {
+////        for(int i = 0; i < value.number_of_excludes; i++)
+////        {
+////            free(value.exclude[i]);
+////        }
+//        free(value.exclude);
+//    }
+
 }
 
 void nearest_result_destroy(nearest_result_t *value)
