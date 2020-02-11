@@ -10,7 +10,7 @@ extern "C" {
 
 typedef struct waypoint
 {
-    unsigned nodes[2];
+    long long nodes[2];
     char* hint;
     double distance;
     char* name;
