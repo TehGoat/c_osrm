@@ -5,6 +5,7 @@
 
 #include <iostream>
 #include <engine/approach.hpp>
+#include <storage/storage_config.hpp>
 
 
 using namespace osrm;
@@ -13,14 +14,51 @@ struct c_osrm {
     void *obj;
 };
 
-
 c_osrm_t *osrm_create(engine_config_t *config)
 {
     c_osrm_t *osrm;
     OSRM *osrm_osrm;
 
+    EngineConfig osrm_config;
+    osrm_config.storage_config = storage::StorageConfig(boost::filesystem::path(config->storage_config));
+    osrm_config.max_locations_trip = config->max_locations_trip;
+    osrm_config.max_locations_viaroute = config->max_locations_viaroute;
+    osrm_config.max_locations_distance_table = config->max_locations_distance_table;
+    osrm_config.max_locations_map_matching = config->max_locations_map_matching;
+    osrm_config.max_radius_map_matching = config->max_radius_map_matching;
+    osrm_config.max_results_nearest = config->max_results_nearest;
+    osrm_config.max_alternatives = config->max_alternatives;
+    osrm_config.use_shared_memory = config->use_shared_memory;
+    if(config->memory_file != NULL)
+    {
+        osrm_config.memory_file = config->memory_file;
+    }
+    osrm_config.use_mmap = config->use_mmap;
+    if(config->verbosity != NULL)
+    {
+        osrm_config.verbosity = config->verbosity;
+    }
+    if(config->dataset_name != NULL)
+    {
+        osrm_config.dataset_name = config->dataset_name;
+    }
+
+    switch (config->algorithm)
+    {
+
+        case Algorithm::CH:
+            osrm_config.algorithm = EngineConfig::Algorithm::CH;
+            break;
+        case Algorithm::CoreCH:
+            osrm_config.algorithm = EngineConfig::Algorithm::CoreCH;
+            break;
+        case Algorithm::MLD:
+            osrm_config.algorithm = EngineConfig::Algorithm::MLD;
+            break;
+    }
+
     osrm = (typeof(osrm))malloc(sizeof(*osrm));
-    osrm_osrm = new OSRM(*static_cast<EngineConfig*>(config->obj));
+    osrm_osrm = new OSRM(osrm_config);
     osrm->obj = osrm_osrm;
 
     return osrm;
@@ -41,8 +79,7 @@ enum status osrm_nearest(c_osrm_t *c_osrm, nearest_request_t* request, nearest_r
 {
     OSRM *osrm =static_cast<OSRM*>(c_osrm->obj);
 
-    double d = *request->general_options.radiuses;
-    printf("%f\n", d);
+    printf("%i", request->number_of_results);
 
     NearestParameters parameters;
     parameters.coordinates.emplace_back(util::FloatLongitude{request->general_options.coordinates.longitude}, util::FloatLatitude{request->general_options.coordinates.latitude});

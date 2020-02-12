@@ -6,7 +6,6 @@
 extern "C" {
 #endif
 
-#include "engine_config.h"
 #include "parameters.h"
 
 enum status

@@ -14,6 +14,31 @@ enum boolean {
     TRUE = 1
 };
 
+enum class Algorithm
+{
+    CH,
+    CoreCH, // Deprecated, will be removed in v6.0
+    MLD
+};
+
+typedef struct engine_config
+{
+    char* storage_config;
+    int max_locations_trip = -1;
+    int max_locations_viaroute = -1;
+    int max_locations_distance_table = -1;
+    int max_locations_map_matching = -1;
+    double max_radius_map_matching = -1.0;
+    int max_results_nearest = -1;
+    int max_alternatives = 3; // set an arbitrary upper bound; can be adjusted by user
+    bool use_shared_memory = true;
+    char* memory_file;
+    bool use_mmap = true;
+    Algorithm algorithm = Algorithm::CH;
+    char* verbosity;
+    char* dataset_name;
+} engine_config_t;
+
 typedef struct nearest_waypoint
 {
     long long nodes[2];
