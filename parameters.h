@@ -5,6 +5,8 @@
 #ifndef C_OSRM_PARAMETERS_H
 #define C_OSRM_PARAMETERS_H
 
+#include <cfloat>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -48,6 +50,14 @@ typedef struct nearest_waypoint
     double location[2];
 } nearest_waypoint_t;
 
+typedef struct waypoint
+{
+    char* hint;
+    double distance;
+    char* name;
+    double location[2];
+} waypoint_t;
+
 typedef struct osrm_bearing
 {
     short bearing;
@@ -69,9 +79,10 @@ enum osrm_fallback_coordinate
 
 enum osrm_annotations
 {
-    DURATION = 0,
-    DISTANCE = 1,
-    DURATION_DISTANCE = 2
+    NONE = 0,
+    DURATION = 1,
+    DISTANCE = 2,
+    ALL = 3
 };
 
 typedef struct coordinate{
@@ -100,14 +111,17 @@ typedef struct nearest_request
 
 typedef struct table_request
 {
-    general_options_t* general_options;
+    general_options_t general_options;
     int* sources;
+    int number_of_sources;
     int* destinations;
-    enum osrm_annotations annotations;
-    double fallback_speed;
-    enum osrm_fallback_coordinate fallback_coordinate;
-    double scale_factor;
+    int number_of_destinations;
+    enum osrm_annotations annotations = osrm_annotations::DURATION;
+    double fallback_speed = DBL_MAX;
+    enum osrm_fallback_coordinate fallback_coordinate = osrm_fallback_coordinate::INPUT;
+    double scale_factor = 1;
 } table_request_t;
+
 
 typedef struct nearest_result
 {
@@ -116,6 +130,17 @@ typedef struct nearest_result
     nearest_waypoint_t* waypoints;
     int number_of_waypoints;
 } nearest_result_t;
+
+typedef struct table_result
+{
+    char* code;
+    char* message;
+    double** durations;
+    waypoint_t* sources;
+    waypoint_t* destinations;
+    int number_of_sources;
+    int number_of_destinations;
+} table_result_t;
 
 
 #ifdef __cplusplus

@@ -22,12 +22,10 @@ void osrm_destroy(c_osrm_t *osrm);
 
 enum status osrm_nearest(c_osrm_t *c_osrm, nearest_request_t* request, nearest_result_t** result);
 
-
-nearest_request_t* nearest_request_create(double latitude, double longitude);
-void nearest_request_destroy(nearest_request_t *value);
-void general_options_destroy(general_options_t& value);
+enum status osrm_table(c_osrm_t *c_osrm, table_request_t* request, table_result_t** result);
 
 void nearest_result_destroy(nearest_result_t *value);
+void table_result_destroy(table_result_t *value);
 
 
 
