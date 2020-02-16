@@ -118,57 +118,78 @@ typedef struct waypoint
     double location[2];
 } waypoint_t;
 
-typedef struct osrm_route_intersections
+typedef struct osrm_lane
 {
-    long long out;
-    enum boolean* entry;
-    int number_of_entries;
+    char* indications;
+    boolean valid;
+} osrm_lane_t;
+
+typedef struct osrm_intersections
+{
     coordinate_t location;
     int* bearings;
+    char** classes;
+    int number_of_classes;
+    enum boolean* entry;
+    int number_of_available_roads;
+    long long in;
+    long long out;
+    osrm_lane_t lanes;
+} osrm_intersections_t;
 
-} osrm_route_intersections_t;
-
-typedef struct osrm_route_maneuver
+typedef struct osrm_maneuver
 {
+    int bearing_before;
     int bearing_after;
     coordinate_t location;
-    int bearing_before;
     char* type;
     char* modifer;
-} osrm_route_maneuver_t;
+} osrm_maneuver_t;
 
-typedef struct osrm_route_step
+typedef struct osrm_step
 {
-    osrm_route_intersections_t* intersections;
-    char* driving_side;
-    char* geometry;
-    char* mode;
-    double duration;
-    osrm_route_maneuver_t maneuver;
-    char* ref;
-    double weight;
     double distance;
+    double duration;
+    char* geometry;
+    double weight;
     char* name;
-} osrm_route_step_t;
+    char* ref;
+    char* pronunciation;
+    //destinations?
+    char* exits;
+    char* mode;
+    osrm_maneuver_t* maneuver;
+    osrm_intersections_t* intersections;
+    char* rotary_name;
+    char* rotary_pronunciation;
+    char* driving_side;
+} osrm_step_t;
 
-typedef struct osrm_route_annotation
+typedef struct osrm_metadata
+{
+    char** datasource_names;
+    int number_of_datasource_names;
+} osrm_metadata_t;
+
+typedef struct osrm_annotation
 {
     double* duration;
     double* distance;
     double* speed;
-    double weight;
+    double* weight;
     long long* nodes;
     int* datasources;
-} osrm_route_annotation_t;
+    osrm_metadata_t* metadata;
+} osrm_annotation_t;
 
 typedef struct osrm_route_legs
 {
-    osrm_route_annotation_t* annotation;
+    osrm_annotation_t* annotation;
     double duration;
     char* summary;
     double weight;
     double distance;
-    //steps?
+    osrm_step_t* steps;
 } osrm_route_legs_t;
 
 typedef struct osrm_route
@@ -199,7 +220,7 @@ typedef struct general_option
     enum osrm_approaches* approaches;
     char** exclude;
     int number_of_excludes;
-}general_options_t;
+} general_options_t;
 
 typedef struct nearest_request
 {
@@ -234,7 +255,7 @@ typedef struct route_request
     unsigned long long* waypoints;
     int number_of_waypoints;
 
-}route_request_t;
+} route_request_t;
 
 
 typedef struct nearest_result
@@ -262,8 +283,8 @@ typedef struct route_result
     char* message;
     waypoint_t* waypoints;
     int number_of_waypoints;
-    //todo routes
-}route_result_t;
+    osrm_route_t* routes;
+} route_result_t;
 
 
 #ifdef __cplusplus
