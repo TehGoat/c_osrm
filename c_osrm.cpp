@@ -81,7 +81,11 @@ enum status osrm_nearest(c_osrm_t *c_osrm, nearest_request_t* request, nearest_r
     OSRM *osrm =static_cast<OSRM*>(c_osrm->obj);
 
     NearestParameters parameters;
-    parameters.coordinates.emplace_back(util::FloatLongitude{request->general_options.coordinates.longitude}, util::FloatLatitude{request->general_options.coordinates.latitude});
+    parameters.coordinates.emplace_back(
+            util::FloatLongitude{request->general_options.coordinates[0].longitude},
+            util::FloatLatitude{request->general_options.coordinates[0].latitude}
+            );
+
     parameters.number_of_results = request->number_of_results;
 
     if(request->general_options.radiuses != NULL )
@@ -204,6 +208,14 @@ enum status osrm_table(c_osrm_t *c_osrm, table_request_t* request, table_result_
     OSRM *osrm =static_cast<OSRM*>(c_osrm->obj);
 
     TableParameters parameters;
+
+    for(int i = 0; i < request->general_options.number_of_coordinates; i++)
+    {
+        parameters.coordinates.emplace_back(
+                util::FloatLongitude{request->general_options.coordinates[i].longitude},
+                util::FloatLatitude{request->general_options.coordinates[i].latitude}
+                );
+    }
 
     if(request->sources != NULL)
     {
@@ -370,16 +382,14 @@ enum status osrm_table(c_osrm_t *c_osrm, table_request_t* request, table_result_
 
         }
 
-        return_result->durations = static_cast<double**>(malloc(sizeof(double) * sources.size()));
+        return_result->durations = static_cast<double*>(malloc(sizeof(double) * sources.size() * durations.size()));
         for(int i = 0; i < sources.size(); i++)
         {
             const auto durations_element = durations[i].get<json::Array>().values;
 
-            return_result->durations[i] = static_cast<double*>(malloc(sizeof(double) * durations_element.size()));
-
             for(int j = 0; j < durations_element.size(); j++)
             {
-                return_result->durations[i][j] = durations_element[j].get<json::Number>().value;
+                return_result->durations[i * sources.size() +j] = durations_element[j].get<json::Number>().value;
             }
         }
 
@@ -455,14 +465,9 @@ void table_result_destroy(table_result_t *value)
 
     if(value->durations != NULL)
     {
-        for(int i = 0; i < value->number_of_sources; i++)
-        {
-            free(value->durations[i]);
-        }
-
         free(value->durations);
     }
-
+    
     if(value->sources != NULL)
     {
         for(int i = 0; i < value->number_of_sources; i++)
@@ -482,7 +487,7 @@ void table_result_destroy(table_result_t *value)
             free(value->destinations[i].name);
         }
 
-        free(value->sources);
+        free(value->destinations);
     }
 
     free(value);

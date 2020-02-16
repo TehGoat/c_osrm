@@ -92,14 +92,14 @@ typedef struct coordinate{
 
 typedef struct general_option
 {
-    coordinate_t coordinates;
+    coordinate_t* coordinates;
     int number_of_coordinates;
     osrm_bearing_t* bearings;
     double* radiuses;
     enum boolean generate_hints;
     char* hints;
     enum osrm_approaches* approaches;
-    char* exclude;
+    char** exclude;
     int number_of_excludes;
 }general_options_t;
 
@@ -135,7 +135,7 @@ typedef struct table_result
 {
     char* code;
     char* message;
-    double** durations;
+    double* durations;
     waypoint_t* sources;
     waypoint_t* destinations;
     int number_of_sources;
