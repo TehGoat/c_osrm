@@ -120,7 +120,7 @@ typedef struct waypoint
 
 typedef struct osrm_lane
 {
-    char* indications;
+    char** indications;
     boolean valid;
 } osrm_lane_t;
 
@@ -128,13 +128,14 @@ typedef struct osrm_intersections
 {
     coordinate_t location;
     int* bearings;
+    int number_of_bearings;
     char** classes;
     int number_of_classes;
     enum boolean* entry;
-    int number_of_available_roads;
+    int number_of_entries;
     long long in;
     long long out;
-    osrm_lane_t lanes;
+    osrm_lane_t* lanes;
 } osrm_intersections_t;
 
 typedef struct osrm_maneuver

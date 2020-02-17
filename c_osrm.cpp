@@ -17,12 +17,17 @@ struct c_osrm {
     void *obj;
 };
 
+
+char* get_string(std::string key, json::Object &json);
+char* get_string_from_string(json::String &value);
+
 void parse_route(route_result_t *return_result, const json::Array &routes);
 void parse_route_leg(osrm_route_t &route, const json::Array &routes_legs);
-void parse_annotation(osrm_route_legs_t &route, const json::Object &annotation);
+void parse_annotation(osrm_route_legs_t &route, json::Object &annotation);
 void parse_step(osrm_route_legs_t &route, json::Array &steps);
-char* get_string(std::string key, json::Object &json);
 void parse_maneuver(osrm_step_t &step, json::Object &maneuver);
+void parse_intersections(osrm_step_t &step, json::Array &intersections);
+void parse_lanes(osrm_intersections_t &intersections, json::Array &lanes);
 
 c_osrm_t *osrm_create(engine_config_t *config)
 {
@@ -149,10 +154,9 @@ enum status osrm_nearest(c_osrm_t *c_osrm, nearest_request_t* request, nearest_r
     nearest_result *return_result = NULL;
     return_result = (typeof(return_result))malloc(sizeof(*return_result));
 
-    const auto code = json_result.values["code"].get<json::String>().value;
-    return_result->code = (char*)malloc(sizeof(char) * (code.size() + 1));
-    code.copy(return_result->code, code.size() + 1);
-    return_result->code[code.size()] = '\0';
+    
+    return_result->code = get_string("code", json_result);
+
     if (status == Status::Ok)
     {
         return_result->message = NULL;
@@ -169,8 +173,6 @@ enum status osrm_nearest(c_osrm_t *c_osrm, nearest_request_t* request, nearest_r
         for(int i = 0; i < waypoints.size(); i++)
         {
             auto waypoint = waypoints[i].get<json::Object>();
-            const auto name = waypoint.values["name"].get<json::String>().value;
-            const auto hint = waypoint.values["hint"].get<json::String>().value;
             const auto distance = waypoint.values["distance"].get<json::Number>().value;
             auto location = waypoint.values["location"].get<json::Array>().values;
             auto nodes = waypoint.values["nodes"].get<json::Array>().values;
@@ -178,15 +180,10 @@ enum status osrm_nearest(c_osrm_t *c_osrm, nearest_request_t* request, nearest_r
             return_result->waypoints[i].nodes[0] = nodes[0].get<json::Number>().value;
             return_result->waypoints[i].nodes[1] = nodes[1].get<json::Number>().value;
 
-            return_result->waypoints[i].hint= (char*)malloc(sizeof(char) * (hint.size() + 1));
-            hint.copy(return_result->waypoints[i].hint, hint.size() + 1);
-            return_result->waypoints[i].hint[hint.size()] = '\0';
+            return_result->waypoints[i].hint = get_string("hint", waypoint);
+            return_result->waypoints[i].name= get_string("name", waypoint);
 
             return_result->waypoints[i].distance = distance;
-
-            return_result->waypoints[i].name= (char*)malloc(sizeof(char) * (name.size() + 1));
-            name.copy(return_result->waypoints[i].name, name.size() + 1);
-            return_result->waypoints[i].name[name.size()] = '\0';
 
             return_result->waypoints[i].location[0] = location[0].get<json::Number>().value;
             return_result->waypoints[i].location[1] = location[1].get<json::Number>().value;
@@ -200,11 +197,7 @@ enum status osrm_nearest(c_osrm_t *c_osrm, nearest_request_t* request, nearest_r
     }
     else
     {
-        const auto message = json_result.values["message"].get<json::String>().value;
-
-        return_result->message = (char*)malloc(sizeof(char) * (message.size() + 1));
-        message.copy(return_result->message, message.size() + 1);
-        return_result->message[message.size()] = '\0';
+        return_result->message = get_string("message", json_result);
 
         *result = return_result;
 
@@ -326,10 +319,8 @@ enum status osrm_table(c_osrm_t *c_osrm, table_request_t* request, table_result_
     table_result_t *return_result = NULL;
     return_result = (typeof(return_result))malloc(sizeof(*return_result));
 
-    const auto code = json_result.values["code"].get<json::String>().value;
-    return_result->code = (char*)malloc(sizeof(char) * (code.size() + 1));
-    code.copy(return_result->code, code.size() + 1);
-    return_result->code[code.size()] = '\0';
+
+    return_result->code = get_string("code", json_result);
 
     if (status == Status::Ok)
     {
@@ -345,20 +336,13 @@ enum status osrm_table(c_osrm_t *c_osrm, table_request_t* request, table_result_
         for(int i = 0; i < sources.size(); i++)
         {
             auto source = sources[i].get<json::Object>();
-            const auto name = source.values["name"].get<json::String>().value;
-            const auto hint = source.values["hint"].get<json::String>().value;
             const auto distance = source.values["distance"].get<json::Number>().value;
             auto location = source.values["location"].get<json::Array>().values;
 
-            return_result->sources[i].hint= (char*)malloc(sizeof(char) * (hint.size() + 1));
-            hint.copy(return_result->sources[i].hint, hint.size() + 1);
-            return_result->sources[i].hint[hint.size()] = '\0';
+            return_result->sources[i].hint = get_string("hint", source);
+            return_result->sources[i].name = get_string("name", source);
 
             return_result->sources[i].distance = distance;
-
-            return_result->sources[i].name= (char*)malloc(sizeof(char) * (name.size() + 1));
-            name.copy(return_result->sources[i].name, name.size() + 1);
-            return_result->sources[i].name[name.size()] = '\0';
 
             return_result->sources[i].location[0] = location[0].get<json::Number>().value;
             return_result->sources[i].location[1] = location[1].get<json::Number>().value;
@@ -371,20 +355,13 @@ enum status osrm_table(c_osrm_t *c_osrm, table_request_t* request, table_result_
         for(int i = 0; i < destinations.size(); i++)
         {
             auto destination = destinations[i].get<json::Object>();
-            const auto name = destination.values["name"].get<json::String>().value;
-            const auto hint = destination.values["hint"].get<json::String>().value;
             const auto distance = destination.values["distance"].get<json::Number>().value;
             auto location = destination.values["location"].get<json::Array>().values;
 
-            return_result->destinations[i].hint= (char*)malloc(sizeof(char) * (hint.size() + 1));
-            hint.copy(return_result->destinations[i].hint, hint.size() + 1);
-            return_result->destinations[i].hint[hint.size()] = '\0';
+            return_result->destinations[i].hint = get_string("hint", destination);
+            return_result->destinations[i].name = get_string("name", destination);
 
             return_result->destinations[i].distance = distance;
-
-            return_result->destinations[i].name= (char*)malloc(sizeof(char) * (name.size() + 1));
-            name.copy(return_result->destinations[i].name, name.size() + 1);
-            return_result->destinations[i].name[name.size()] = '\0';
 
             return_result->destinations[i].location[0] = location[0].get<json::Number>().value;
             return_result->destinations[i].location[1] = location[1].get<json::Number>().value;
@@ -409,11 +386,7 @@ enum status osrm_table(c_osrm_t *c_osrm, table_request_t* request, table_result_
     }
     else
     {
-        const auto message = json_result.values["message"].get<json::String>().value;
-
-        return_result->message = (char*)malloc(sizeof(char) * (message.size() + 1));
-        message.copy(return_result->message, message.size() + 1);
-        return_result->message[message.size()] = '\0';
+        return_result->message = get_string("message", json_result);
 
         *result = return_result;
 
@@ -569,10 +542,7 @@ enum status osrm_route(c_osrm_t *c_osrm, route_request_t* request, route_result_
     route_result_t *return_result = NULL;
     return_result = (typeof(return_result))malloc(sizeof(*return_result));
 
-    const auto code = json_result.values["code"].get<json::String>().value;
-    return_result->code = (char*)malloc(sizeof(char) * (code.size() + 1));
-    code.copy(return_result->code, code.size() + 1);
-    return_result->code[code.size()] = '\0';
+    return_result->code = get_string("code", json_result);
 
     if (status == Status::Ok)
     {
@@ -588,20 +558,13 @@ enum status osrm_route(c_osrm_t *c_osrm, route_request_t* request, route_result_
             auto waypoint = waypoints[i].get<json::Object>();
             if(waypoint.values.find("name") != waypoint.values.end())
             {
-                const auto name = waypoint.values["name"].get<json::String>().value;
-                return_result->waypoints[i].name= (char*)malloc(sizeof(char) * (name.size() + 1));
-                name.copy(return_result->waypoints[i].name, name.size() + 1);
-                return_result->waypoints[i].name[name.size()] = '\0';
-                
+                return_result->waypoints[i].name = get_string("name", waypoint);
             }
             
 
             if(waypoint.values.find("hint") != waypoint.values.end())
             {
-                const auto hint = waypoint.values["hint"].get<json::String>().value;
-                return_result->waypoints[i].hint= (char*)malloc(sizeof(char) * (hint.size() + 1));
-                hint.copy(return_result->waypoints[i].hint, hint.size() + 1);
-                return_result->waypoints[i].hint[hint.size()] = '\0';
+                return_result->waypoints[i].hint = get_string("hint", waypoint);
             }
 
             if(waypoint.values.find("distance") != waypoint.values.end())
@@ -630,11 +593,7 @@ enum status osrm_route(c_osrm_t *c_osrm, route_request_t* request, route_result_
     }
     else
     {
-        const auto message = json_result.values["message"].get<json::String>().value;
-
-        return_result->message = (char*)malloc(sizeof(char) * (message.size() + 1));
-        message.copy(return_result->message, message.size() + 1);
-        return_result->message[message.size()] = '\0';
+        return_result->message = get_string("message", json_result);
 
         *result = return_result;
 
@@ -660,10 +619,7 @@ void parse_route(route_result_t *return_result, const json::Array &routes)
         }
         if(route.values.find("weight_name") != route.values.end())
         {
-            const auto weight_name = route.values["weight_name"].get<json::String>().value;
-            return_result->routes[i].weight_name = (char*)malloc(sizeof(char) * (weight_name.size() + 1));
-            weight_name.copy(return_result->routes[i].weight_name, weight_name.size() + 1);
-            return_result->routes[i].weight_name[weight_name.size()] = '\0';
+            return_result->routes[i].weight_name = get_string("weight_name", route);
         }
         if(route.values.find("weight") != route.values.end())
         {
@@ -671,10 +627,7 @@ void parse_route(route_result_t *return_result, const json::Array &routes)
         }
         if(route.values.find("geometry") != route.values.end())
         {
-            const auto geometry = route.values["geometry"].get<json::String>().value;
-            return_result->routes[i].geometry = (char*)malloc(sizeof(char) * (geometry.size() + 1));
-            geometry.copy(return_result->routes[i].geometry, geometry.size() + 1);
-            return_result->routes[i].geometry[geometry.size()] = '\0';
+            return_result->routes[i].geometry = get_string("geometry", route);
         }
         if(route.values.find("legs") != route.values.end())
         {
@@ -701,10 +654,7 @@ void parse_route_leg(osrm_route_t &route, const json::Array &routes_legs)
         }
         if(route_leg.values.find("summary") != route_leg.values.end())
         {
-            const auto summary = route_leg.values["summary"].get<json::String>().value;
-            route.legs[i].summary = (char*)malloc(sizeof(char) * (summary.size() + 1));
-            summary.copy(route.legs[i].summary, summary.size() + 1);
-            route.legs[i].summary[summary.size()] = '\0';
+            route.legs[i].summary = get_string("summary", route_leg);
         }
         if(route_leg.values.find("weight") != route_leg.values.end())
         {
@@ -831,7 +781,11 @@ void parse_step(osrm_route_legs_t &route, json::Array &steps)
             auto maneuver = curret_json_step.values["maneuver"].get<json::Object>();
             parse_maneuver(current_step, maneuver);
         }
-        //intersections
+        if(curret_json_step.values.find("intersections") != curret_json_step.values.end())
+        {
+            auto intersections = curret_json_step.values["intersections"].get<json::Array>();
+            parse_intersections(current_step, intersections);
+        }
         current_step.rotary_name = get_string("rotary_name", curret_json_step);
         current_step.rotary_pronunciation = get_string("rotary_pronunciation", curret_json_step);
         current_step.driving_side = get_string("driving_side", curret_json_step);
@@ -859,6 +813,79 @@ void parse_maneuver(osrm_step_t &step, json::Object &maneuver)
     step.maneuver->modifer = get_string("modifer", maneuver);
 }
 
+void parse_intersections(osrm_step_t &step, json::Array &intersections)
+{
+    step.intersections = static_cast<osrm_intersections_t  *>(malloc(sizeof(osrm_intersections_t) * intersections.values.size()));
+    for(int i = 0; i < intersections.values.size(); i++)
+    {
+        auto intersection = intersections.values[i].get<json::Object>();
+        if(intersection.values.find("location") != intersection.values.end())
+        {
+            auto location = intersection.values["location"].get<json::Array>().values;
+            step.intersections[i].location.longitude = location[0].get<json::Number>().value;
+            step.intersections[i].location.latitude = location[1].get<json::Number>().value;
+        }
+        if(intersection.values.find("in") != intersection.values.end())
+        {
+            step.intersections[i].in = intersection.values["in"].get<json::Number>().value;
+        }
+        if(intersection.values.find("out") != intersection.values.end())
+        {
+            step.intersections[i].out = intersection.values["out"].get<json::Number>().value;
+        }
+        if(intersection.values.find("bearings") != intersection.values.end())
+        {
+            auto bearings = intersection.values["bearings"].get<json::Array>();
+            step.intersections[i].bearings = static_cast<int  *>(malloc(sizeof(int) * bearings.values.size()));
+            step.intersections[i].number_of_bearings = bearings.values.size();
+            for(int j = 0; j < bearings.values.size(); j++)
+            {
+                step.intersections[i].bearings[j] = bearings.values[j].get<json::Number>().value;
+            }
+        }
+        if(intersection.values.find("classes") != intersection.values.end())
+        {
+            auto classes = intersection.values["classes"].get<json::Array>();
+            step.intersections[i].classes = static_cast<char  **>(malloc(sizeof(char*) * classes.values.size()));
+            step.intersections[i].number_of_classes = classes.values.size();
+            for(int j = 0; j < classes.values.size(); j++)
+            {
+                step.intersections[i].classes[j] = get_string_from_string(classes.values[j].get<json::String>());
+            }
+        }
+        if(intersection.values.find("lanes") != intersection.values.end())
+        {
+            auto lanes = intersection.values["lanes"].get<json::Array>();
+            parse_lanes(step.intersections[i], lanes);
+        }
+    }
+}
+
+void parse_lanes(osrm_intersections_t &intersections, json::Array &lanes)
+{
+    intersections.lanes = static_cast<osrm_lane_t  *>(malloc(sizeof(osrm_lane_t) * lanes.values.size()));
+    for(int i = 0; i < lanes.values.size(); i++)
+    {
+        auto lane = lanes.values[i].get<json::Object>();
+        if(lane.values.find("indications") != lane.values.end())
+        {
+            auto indications = lane.values["indications"].get<json::Array>();
+            intersections.lanes[i].indications = static_cast<char **>(malloc(sizeof(char *) * indications.values.size()));
+            for(int j = 0; j < indications.values.size(); j++)
+            {
+                intersections.lanes[i].indications[j] = get_string_from_string(indications.values[j].get<json::String>());
+            }
+        }
+        if(lane.values.find("valid") != lane.values.end())
+        {
+            if(lane.values["valid"].is<json::True>())
+            {
+                intersections.lanes[i].valid = boolean::TRUE;
+            } 
+        }
+    }
+}
+
 char* get_string(std::string key, json::Object &json)
 {
     char* return_value;
@@ -872,6 +899,16 @@ char* get_string(std::string key, json::Object &json)
 
     return return_value;
 }
+
+char* get_string_from_string(json::String &value)
+{
+    char* return_value = (char*)malloc(sizeof(char) * (value.value.size() + 1));
+    value.value.copy(return_value, value.value.size() + 1);
+    return_value[value.value.size()] = '\0';
+
+    return return_value;
+}
+
 
 void nearest_result_destroy(nearest_result_t *value)
 {
