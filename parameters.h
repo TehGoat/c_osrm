@@ -5,18 +5,18 @@
 #ifndef C_OSRM_PARAMETERS_H
 #define C_OSRM_PARAMETERS_H
 
-#include <cfloat>
-
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+#include <float.h>
 
 enum boolean {
     FALSE,
     TRUE
 };
 
-enum class Algorithm
+enum Algorithm
 {
     CH,
     CoreCH, // Deprecated, will be removed in v6.0
@@ -80,17 +80,17 @@ enum continue_straight
 typedef struct engine_config
 {
     char* storage_config;
-    int max_locations_trip = -1;
-    int max_locations_viaroute = -1;
-    int max_locations_distance_table = -1;
-    int max_locations_map_matching = -1;
-    double max_radius_map_matching = -1.0;
-    int max_results_nearest = -1;
-    int max_alternatives = 3; // set an arbitrary upper bound; can be adjusted by user
-    bool use_shared_memory = true;
+    int max_locations_trip;
+    int max_locations_viaroute;
+    int max_locations_distance_table;
+    int max_locations_map_matching;
+    double max_radius_map_matching ;
+    int max_results_nearest;
+    int max_alternatives; // set an arbitrary upper bound; can be adjusted by user
+    enum boolean use_shared_memory;
     char* memory_file;
-    bool use_mmap = true;
-    Algorithm algorithm = Algorithm::CH;
+    enum boolean use_mmap;
+    enum Algorithm algorithm;
     char* verbosity;
     char* dataset_name;
 } engine_config_t;
@@ -121,7 +121,7 @@ typedef struct waypoint
 typedef struct osrm_lane
 {
     char** indications;
-    boolean valid;
+    enum boolean valid;
 } osrm_lane_t;
 
 typedef struct osrm_intersections
@@ -136,6 +136,7 @@ typedef struct osrm_intersections
     long long in;
     long long out;
     osrm_lane_t* lanes;
+    int number_of_lanes;
 } osrm_intersections_t;
 
 typedef struct osrm_maneuver
@@ -161,6 +162,7 @@ typedef struct osrm_step
     char* mode;
     osrm_maneuver_t* maneuver;
     osrm_intersections_t* intersections;
+    int number_of_intersections;
     char* rotary_name;
     char* rotary_pronunciation;
     char* driving_side;
@@ -191,6 +193,7 @@ typedef struct osrm_route_legs
     double weight;
     double distance;
     osrm_step_t* steps;
+    int number_of_steps;
 } osrm_route_legs_t;
 
 typedef struct osrm_route
@@ -201,6 +204,7 @@ typedef struct osrm_route
     double weight;
     char* geometry;
     osrm_route_legs_t* legs;
+    int number_of_legs;
 } osrm_route_t;
 
 typedef struct osrm_bearing
@@ -236,22 +240,22 @@ typedef struct table_request
     int number_of_sources;
     int* destinations;
     int number_of_destinations;
-    enum osrm_annotations annotations = osrm_annotations::DURATION;
-    double fallback_speed = DBL_MAX;
-    enum osrm_fallback_coordinate fallback_coordinate = osrm_fallback_coordinate::INPUT;
-    double scale_factor = 1;
+    enum osrm_annotations annotations;
+    double fallback_speed;
+    enum osrm_fallback_coordinate fallback_coordinate;
+    double scale_factor;
 } table_request_t;
 
 typedef struct route_request
 {
     general_options_t general_options;
-    enum boolean steps = boolean::FALSE;
-    enum boolean alternatives = boolean::FALSE;
-    unsigned number_of_alternatives = 0;
-    enum boolean annotations = boolean::FALSE;
-    enum AnnotationsType annotations_type = AnnotationsType::None;
-    enum GeometriesType geometries = GeometriesType::Polyline;
-    enum OverviewType overview = OverviewType::Simplified;
+    enum boolean steps;
+    enum boolean alternatives;
+    unsigned number_of_alternatives;
+    enum boolean annotations;
+    enum AnnotationsType annotations_type;
+    enum GeometriesType geometries;
+    enum OverviewType overview;
     enum continue_straight continue_straight;
     unsigned long long* waypoints;
     int number_of_waypoints;
@@ -285,6 +289,7 @@ typedef struct route_result
     waypoint_t* waypoints;
     int number_of_waypoints;
     osrm_route_t* routes;
+    int number_of_routes;
 } route_result_t;
 
 
