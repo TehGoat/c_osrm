@@ -77,7 +77,7 @@ enum continue_straight
     CONTINUE_STRAIGHT_FALSE = 2,
 };
 
-typedef struct engine_config
+struct engine_config
 {
     char* storage_config;
     int max_locations_trip;
@@ -93,38 +93,49 @@ typedef struct engine_config
     enum Algorithm algorithm;
     char* verbosity;
     char* dataset_name;
-} engine_config_t;
+} const engine_config_default = {0, -1, -1, -1, -1, -1.0, -1, 3, 
+                            TRUE, 0,  TRUE, CH, 0, 0};
+
+typedef struct engine_config engine_config_t;
 
 
-typedef struct coordinate{
+struct coordinate{
     double latitude;
     double longitude;
-} coordinate_t;
+}const  coordinate_default = {0,0};
 
-typedef struct nearest_waypoint
+typedef struct coordinate coordinate_t;
+
+struct nearest_waypoint
 {
     long long nodes[2];
     char* hint;
     double distance;
     char* name;
     double location[2];
-} nearest_waypoint_t;
+} const nearest_waypoint_default = {{0,0}, 0, 0, 0, {0,0}};
 
-typedef struct waypoint
+typedef struct nearest_waypoint nearest_waypoint_t;
+
+struct waypoint
 {
     char* hint;
     double distance;
     char* name;
     double location[2];
-} waypoint_t;
+} const waypoint_default = {0, 0, 0, {0,0}};
 
-typedef struct osrm_lane
+typedef struct waypoint waypoint_t;
+
+struct osrm_lane
 {
     char** indications;
     enum boolean valid;
-} osrm_lane_t;
+} const osrm_lane_default = {0, FALSE};
 
-typedef struct osrm_intersections
+typedef struct osrm_lane osrm_lane_t;
+
+struct osrm_intersections
 {
     coordinate_t location;
     int* bearings;
@@ -137,18 +148,22 @@ typedef struct osrm_intersections
     long long out;
     osrm_lane_t* lanes;
     int number_of_lanes;
-} osrm_intersections_t;
+} const osrm_intersections_default = {coordinate_default, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
-typedef struct osrm_maneuver
+typedef struct osrm_intersections osrm_intersections_t;
+
+struct osrm_maneuver
 {
     int bearing_before;
     int bearing_after;
     coordinate_t location;
     char* type;
     char* modifer;
-} osrm_maneuver_t;
+} const osrm_maneuver_default = {0, 0, coordinate_default, 0, 0};
 
-typedef struct osrm_step
+typedef struct osrm_maneuver osrm_maneuver_t;
+
+struct osrm_step
 {
     double distance;
     double duration;
@@ -166,15 +181,19 @@ typedef struct osrm_step
     char* rotary_name;
     char* rotary_pronunciation;
     char* driving_side;
-} osrm_step_t;
+} const osrm_step_default = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
-typedef struct osrm_metadata
+typedef struct osrm_step osrm_step_t;
+
+struct osrm_metadata
 {
     char** datasource_names;
     int number_of_datasource_names;
-} osrm_metadata_t;
+} const osrm_metadata_default = {0, 0};
 
-typedef struct osrm_annotation
+typedef struct osrm_metadata osrm_metadata_t;
+
+struct osrm_annotation
 {
     double* duration;
     double* distance;
@@ -183,9 +202,11 @@ typedef struct osrm_annotation
     long long* nodes;
     int* datasources;
     osrm_metadata_t* metadata;
-} osrm_annotation_t;
+} const osrm_annotation_default = {0, 0, 0, 0, 0, 0, 0};
 
-typedef struct osrm_route_legs
+typedef struct osrm_annotation osrm_annotation_t;
+
+struct osrm_route_legs
 {
     osrm_annotation_t* annotation;
     double duration;
@@ -194,9 +215,11 @@ typedef struct osrm_route_legs
     double distance;
     osrm_step_t* steps;
     int number_of_steps;
-} osrm_route_legs_t;
+} const osrm_route_legs_default = {0, 0, 0, 0, 0, 0, 0};
 
-typedef struct osrm_route
+typedef struct osrm_route_legs osrm_route_legs_t;
+
+struct osrm_route
 {
     double duration;
     double distance;
@@ -205,35 +228,44 @@ typedef struct osrm_route
     char* geometry;
     osrm_route_legs_t* legs;
     int number_of_legs;
-} osrm_route_t;
+} const osrm_route_default = {0, 0, 0, 0, 0, 0, 0};
 
-typedef struct osrm_bearing
+typedef struct osrm_route osrm_route_t;
+
+struct osrm_bearing
 {
     short bearing;
     short range;
 
-} osrm_bearing_t;
+} const osrm_bearing_default = {0, 0};
 
-typedef struct general_option
+typedef struct osrm_bearing osrm_bearing_t;
+
+struct general_option
 {
     coordinate_t* coordinates;
     int number_of_coordinates;
     osrm_bearing_t* bearings;
     double* radiuses;
     enum boolean generate_hints;
+    enum boolean skip_waypoints;
     char* hints;
     enum osrm_approaches* approaches;
     char** exclude;
     int number_of_excludes;
-} general_options_t;
+} const general_options_default = {0, 0, 0, 0, TRUE, FALSE, 0, 0, 0, 0};
 
-typedef struct nearest_request
+typedef struct general_option general_options_t;
+
+struct nearest_request
 {
     general_options_t general_options;
     unsigned number_of_results;
-} nearest_request_t;
+} const nearest_request_default = {general_options_default, 1};
 
-typedef struct table_request
+typedef struct nearest_request nearest_request_t;
+
+struct table_request
 {
     general_options_t general_options;
     int* sources;
@@ -244,9 +276,12 @@ typedef struct table_request
     double fallback_speed;
     enum osrm_fallback_coordinate fallback_coordinate;
     double scale_factor;
-} table_request_t;
+} const table_request_default = {general_options_default, 0, 0, 0, 0, DURATION, 
+                            __DBL_MAX__, INPUT, 1};
 
-typedef struct route_request
+typedef struct table_request table_request_t;
+
+struct route_request
 {
     general_options_t general_options;
     enum boolean steps;
@@ -260,18 +295,23 @@ typedef struct route_request
     unsigned long long* waypoints;
     int number_of_waypoints;
 
-} route_request_t;
+} const route_request_default = {general_options_default, FALSE, FALSE, 0, FALSE, 
+                        None, Polyline, Simplified, CONTINUE_STRAIGHT_NONE, 0, 0};
+
+typedef struct route_request route_request_t;
 
 
-typedef struct nearest_result
+struct nearest_result
 {
     char* code;
     char* message;
     nearest_waypoint_t* waypoints;
     int number_of_waypoints;
-} nearest_result_t;
+} const nearest_result_default = {0, 0, 0, 0};
 
-typedef struct table_result
+typedef struct nearest_result nearest_result_t;
+
+struct table_result
 {
     char* code;
     char* message;
@@ -280,9 +320,11 @@ typedef struct table_result
     waypoint_t* destinations;
     int number_of_sources;
     int number_of_destinations;
-} table_result_t;
+} const table_result_default = {0, 0, 0, 0, 0, 0, 0};
 
-typedef struct route_result
+typedef struct table_result table_result_t;
+
+struct route_result
 {
     char* code;
     char* message;
@@ -290,7 +332,9 @@ typedef struct route_result
     int number_of_waypoints;
     osrm_route_t* routes;
     int number_of_routes;
-} route_result_t;
+} const route_result_default = {0, 0, 0, 0, 0, 0};
+
+typedef struct route_result route_result_t;
 
 
 #ifdef __cplusplus

@@ -124,10 +124,9 @@ enum status osrm_nearest(c_osrm_t *c_osrm, nearest_request_t* request, nearest_r
         parameters.bearings.emplace_back(bearing);
     }
 
-    if(request->general_options.generate_hints == FALSE)
-    {
-        parameters.generate_hints = false;
-    }
+    parameters.generate_hints = request->general_options.generate_hints == TRUE;
+
+    parameters.skip_waypoints = request->general_options.skip_waypoints == TRUE;
 
     if(request->general_options.hints != NULL)
     {
@@ -162,13 +161,12 @@ enum status osrm_nearest(c_osrm_t *c_osrm, nearest_request_t* request, nearest_r
 
     nearest_result *return_result = NULL;
     return_result = (typeof(return_result))malloc(sizeof(*return_result));
-
+    *return_result = nearest_result_default;
     
     return_result->code = get_string("code", json_result);
 
     if (status == Status::Ok)
     {
-        return_result->message = NULL;
         const auto waypoints = json_result.values["waypoints"].get<json::Array>().values;
 
         if(waypoints.empty())
@@ -290,10 +288,9 @@ enum status osrm_table(c_osrm_t *c_osrm, table_request_t* request, table_result_
         parameters.bearings.emplace_back(bearing);
     }
 
-    if(request->general_options.generate_hints == FALSE)
-    {
-        parameters.generate_hints = false;
-    }
+    parameters.generate_hints = request->general_options.generate_hints == TRUE;
+
+    parameters.skip_waypoints = request->general_options.skip_waypoints == TRUE;
 
     if(request->general_options.hints != NULL)
     {
@@ -327,14 +324,13 @@ enum status osrm_table(c_osrm_t *c_osrm, table_request_t* request, table_result_
 
     table_result_t *return_result = NULL;
     return_result = (typeof(return_result))malloc(sizeof(*return_result));
+    *return_result = table_result_default;
 
 
     return_result->code = get_string("code", json_result);
 
     if (status == Status::Ok)
     {
-        return_result->message = NULL;
-
         const auto sources = json_result.values["sources"].get<json::Array>().values;
         const auto destinations = json_result.values["destinations"].get<json::Array>().values;
         const auto durations = json_result.values["durations"].get<json::Array>().values;
@@ -513,10 +509,9 @@ enum status osrm_route(c_osrm_t *c_osrm, route_request_t* request, route_result_
         parameters.bearings.emplace_back(bearing);
     }
 
-    if(request->general_options.generate_hints == FALSE)
-    {
-        parameters.generate_hints = false;
-    }
+    parameters.generate_hints = request->general_options.generate_hints == TRUE;
+
+    parameters.skip_waypoints = request->general_options.skip_waypoints == TRUE;
 
     if(request->general_options.hints != NULL)
     {
@@ -552,15 +547,12 @@ enum status osrm_route(c_osrm_t *c_osrm, route_request_t* request, route_result_
 
     route_result_t *return_result = NULL;
     return_result = (typeof(return_result))malloc(sizeof(*return_result));
+    *return_result = route_result_default;
 
     return_result->code = get_string("code", json_result);
 
     if (status == Status::Ok)
     {
-        return_result->message = NULL;
-        return_result->waypoints = NULL;
-        return_result->routes = NULL;
-
         if(json_result.values.find("waypoints") != json_result.values.end())
         {
             const auto waypoints = json_result.values["waypoints"].get<json::Array>().values;
@@ -613,8 +605,6 @@ enum status osrm_route(c_osrm_t *c_osrm, route_request_t* request, route_result_
     else
     {
         return_result->message = get_string("message", json_result);
-        return_result->waypoints = NULL;
-        return_result->routes = NULL;
 
         *result = return_result;
 
@@ -631,6 +621,8 @@ void parse_route(route_result_t *return_result, const json::Array &routes)
     for(int i = 0; i < routes.values.size(); i++)
     {
         auto route = routes.values[i].get<json::Object>();
+        return_result->routes[i] = osrm_route_default;
+
         if(route.values.find("duration") != route.values.end())
         {
             return_result->routes[i].duration = route.values["duration"].get<json::Number>().value;
@@ -692,6 +684,8 @@ void parse_route_leg(osrm_route_t &route, const json::Array &routes_legs)
     for(int i = 0; i < routes_legs.values.size(); i++)
     {
         auto route_leg = routes_legs.values[i].get<json::Object>();
+        route.legs[i] = osrm_route_legs_default;
+
         if(route_leg.values.find("annotation") != route_leg.values.end())
         {
             auto annotation = route_leg.values["annotation"].get<json::Object>();
@@ -750,78 +744,80 @@ void destroy_route_leg(osrm_route_legs_t *route_legs, int number_of_routes_legs)
 void parse_annotation(osrm_route_legs_t &route, json::Object &annotation)
 {
     route.annotation = static_cast<osrm_annotation_t  *>(malloc(sizeof(osrm_annotation_t)));
-    // if(annotation.values.find("duration") != annotation.values.end())
-    // {
-    //     const auto duration_array = annotation.values["duration"].get<json::Array>().values;
-    //     route.annotation->duration = static_cast<double  *>(malloc(sizeof(double) * duration_array.size()));
-    //     for(int i = 0; i < duration_array.size(); i++)
-    //     {
-    //         route.annotation->duration[i] = duration_array[i].get<json::Number>().value;
-    //     }
-    // }
-    // if(annotation.values.find("distance") != annotation.values.end())
-    // {
-    //     const auto distance_array = annotation.values["distance"].get<json::Array>().values;
-    //     route.annotation->distance = static_cast<double  *>(malloc(sizeof(double) * distance_array.size()));
-    //     for(int i = 0; i < distance_array.size(); i++)
-    //     {
-    //         route.annotation->distance[i] = distance_array[i].get<json::Number>().value;
-    //     }
-    // }
-    // if(annotation.values.find("datasources") != annotation.values.end())
-    // {
-    //     const auto datasources_array = annotation.values["datasources"].get<json::Array>().values;
-    //     route.annotation->datasources = static_cast<int  *>(malloc(sizeof(int) * datasources_array.size()));
-    //     for(int i = 0; i < datasources_array.size(); i++)
-    //     {
-    //         route.annotation->datasources[i] = datasources_array[i].get<json::Number>().value;
-    //     }
-    // }
-    // if(annotation.values.find("nodes") != annotation.values.end())
-    // {
-    //     const auto nodes_array = annotation.values["nodes"].get<json::Array>().values;
-    //     route.annotation->datasources = static_cast<int  *>(malloc(sizeof(int) * nodes_array.size()));
-    //     for(int i = 0; i < nodes_array.size(); i++)
-    //     {
-    //         route.annotation->nodes[i] = nodes_array[i].get<json::Number>().value;
-    //     }
-    // }
-    // if(annotation.values.find("weight") != annotation.values.end())
-    // {
-    //     const auto weight_array = annotation.values["weight"].get<json::Array>().values;
-    //     route.annotation->weight = static_cast<double  *>(malloc(sizeof(double) * weight_array.size()));
-    //     for(int i = 0; i < weight_array.size(); i++)
-    //     {
-    //         route.annotation->weight[i] = weight_array[i].get<json::Number>().value;
-    //     }
-    // }
-    // if(annotation.values.find("speed") != annotation.values.end())
-    // {
-    //     const auto speed_array = annotation.values["speed"].get<json::Array>().values;
-    //     route.annotation->speed = static_cast<double  *>(malloc(sizeof(double) * speed_array.size()));
-    //     for(int i = 0; i < speed_array.size(); i++)
-    //     {
-    //         route.annotation->speed[i] = speed_array[i].get<json::Number>().value;
-    //     }
-    // }
-    // if(annotation.values.find("metadata") != annotation.values.end())
-    // {
-    //     auto metadata = annotation.values["metadata"].get<json::Object>();
-    //     route.annotation->metadata = static_cast<osrm_metadata_t *>(malloc(sizeof(osrm_metadata_t)));
-    //     if(metadata.values.find("datasource_names") != metadata.values.end())
-    //     {
-    //         const auto datasource_names_array = metadata.values["datasource_names"].get<json::Array>().values;
-    //         route.annotation->metadata->number_of_datasource_names = datasource_names_array.size();
-    //         route.annotation->metadata->datasource_names = static_cast<char **>(malloc(sizeof(char*) * datasource_names_array.size()));
-    //         for(int i = 0; i < datasource_names_array.size(); i++)
-    //         {
-    //             const auto datasource_name = datasource_names_array[i].get<json::String>().value;
-    //             route.annotation->metadata->datasource_names[i] = (char*)malloc(sizeof(char) * (datasource_name.size() + 1));
-    //             datasource_name.copy(route.annotation->metadata->datasource_names[i], datasource_name.size() + 1);
-    //             route.annotation->metadata->datasource_names[i][datasource_name.size()] = '\0';
-    //         }
-    //     }
-    // }
+    *route.annotation = osrm_annotation_default;
+
+    if(annotation.values.find("duration") != annotation.values.end())
+    {
+        const auto duration_array = annotation.values["duration"].get<json::Array>().values;
+        route.annotation->duration = static_cast<double  *>(malloc(sizeof(double) * duration_array.size()));
+        for(int i = 0; i < duration_array.size(); i++)
+        {
+            route.annotation->duration[i] = duration_array[i].get<json::Number>().value;
+        }
+    }
+    if(annotation.values.find("distance") != annotation.values.end())
+    {
+        const auto distance_array = annotation.values["distance"].get<json::Array>().values;
+        route.annotation->distance = static_cast<double  *>(malloc(sizeof(double) * distance_array.size()));
+        for(int i = 0; i < distance_array.size(); i++)
+        {
+            route.annotation->distance[i] = distance_array[i].get<json::Number>().value;
+        }
+    }
+    if(annotation.values.find("datasources") != annotation.values.end())
+    {
+        const auto datasources_array = annotation.values["datasources"].get<json::Array>().values;
+        route.annotation->datasources = static_cast<int  *>(malloc(sizeof(int) * datasources_array.size()));
+        for(int i = 0; i < datasources_array.size(); i++)
+        {
+            route.annotation->datasources[i] = datasources_array[i].get<json::Number>().value;
+        }
+    }
+    if(annotation.values.find("nodes") != annotation.values.end())
+    {
+        const auto nodes_array = annotation.values["nodes"].get<json::Array>().values;
+        route.annotation->datasources = static_cast<int  *>(malloc(sizeof(int) * nodes_array.size()));
+        for(int i = 0; i < nodes_array.size(); i++)
+        {
+            route.annotation->nodes[i] = nodes_array[i].get<json::Number>().value;
+        }
+    }
+    if(annotation.values.find("weight") != annotation.values.end())
+    {
+        const auto weight_array = annotation.values["weight"].get<json::Array>().values;
+        route.annotation->weight = static_cast<double  *>(malloc(sizeof(double) * weight_array.size()));
+        for(int i = 0; i < weight_array.size(); i++)
+        {
+            route.annotation->weight[i] = weight_array[i].get<json::Number>().value;
+        }
+    }
+    if(annotation.values.find("speed") != annotation.values.end())
+    {
+        const auto speed_array = annotation.values["speed"].get<json::Array>().values;
+        route.annotation->speed = static_cast<double  *>(malloc(sizeof(double) * speed_array.size()));
+        for(int i = 0; i < speed_array.size(); i++)
+        {
+            route.annotation->speed[i] = speed_array[i].get<json::Number>().value;
+        }
+    }
+    if(annotation.values.find("metadata") != annotation.values.end())
+    {
+        auto metadata = annotation.values["metadata"].get<json::Object>();
+        route.annotation->metadata = static_cast<osrm_metadata_t *>(malloc(sizeof(osrm_metadata_t)));
+        if(metadata.values.find("datasource_names") != metadata.values.end())
+        {
+            const auto datasource_names_array = metadata.values["datasource_names"].get<json::Array>().values;
+            route.annotation->metadata->number_of_datasource_names = datasource_names_array.size();
+            route.annotation->metadata->datasource_names = static_cast<char **>(malloc(sizeof(char*) * datasource_names_array.size()));
+            for(int i = 0; i < datasource_names_array.size(); i++)
+            {
+                const auto datasource_name = datasource_names_array[i].get<json::String>().value;
+                route.annotation->metadata->datasource_names[i] = (char*)malloc(sizeof(char) * (datasource_name.size() + 1));
+                datasource_name.copy(route.annotation->metadata->datasource_names[i], datasource_name.size() + 1);
+                route.annotation->metadata->datasource_names[i][datasource_name.size()] = '\0';
+            }
+        }
+    }
 
 }
 
@@ -885,7 +881,9 @@ void parse_step(osrm_route_legs_t &route, json::Array &steps)
     for(int i = 0; i < steps.values.size(); i++)
     {
         auto curret_json_step = steps.values[i].get<json::Object>();
+        route.steps[i] = osrm_step_default;
         auto &current_step = route.steps[i];
+        
         if(curret_json_step.values.find("distance") != curret_json_step.values.end())
         {
             current_step.distance = curret_json_step.values["distance"].get<json::Number>().value;
@@ -983,6 +981,8 @@ void destroy_steps(osrm_step_t  *steps, int number_of_steps)
 void parse_maneuver(osrm_step_t &step, json::Object &maneuver)
 {
     step.maneuver = static_cast<osrm_maneuver_t  *>(malloc(sizeof(osrm_maneuver_t)));
+    *step.maneuver = osrm_maneuver_default;
+
     if(maneuver.values.find("bearing_before") != maneuver.values.end())
     {
         step.maneuver->bearing_before = maneuver.values["bearing_before"].get<json::Number>().value;
@@ -1027,6 +1027,8 @@ void parse_intersections(osrm_step_t &step, json::Array &intersections)
     for(int i = 0; i < intersections.values.size(); i++)
     {
         auto intersection = intersections.values[i].get<json::Object>();
+        step.intersections[i] = osrm_intersections_default;
+
         if(intersection.values.find("location") != intersection.values.end())
         {
             auto location = intersection.values["location"].get<json::Array>().values;
@@ -1107,6 +1109,8 @@ void parse_lanes(osrm_intersections_t &intersections, json::Array &lanes)
     for(int i = 0; i < lanes.values.size(); i++)
     {
         auto lane = lanes.values[i].get<json::Object>();
+        intersections.lanes[i] = osrm_lane_default;
+
         if(lane.values.find("indications") != lane.values.end())
         {
             auto indications = lane.values["indications"].get<json::Array>();
@@ -1166,7 +1170,6 @@ char* get_string_from_string(json::String &value)
 
     return return_value;
 }
-
 
 void nearest_result_destroy(nearest_result_t *value)
 {
@@ -1252,6 +1255,7 @@ void route_result_destroy(route_result_t *value)
     {
         return;
     }
+
 
     if(value->code != NULL)
     {

@@ -6,7 +6,7 @@ set(CMAKE_CXX_STANDARD 14)
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 link_directories(${LibOSRM_LIBRARY_DIRS})
-add_library(c_osrm SHARED c_osrm.cpp c_osrm.h parameters.h)
+add_library(c_osrm SHARED c_osrm.cpp)
 
 find_package(LibOSRM REQUIRED)
 
