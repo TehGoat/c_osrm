@@ -202,6 +202,7 @@ struct osrm_annotation
     long long* nodes;
     int* datasources;
     osrm_metadata_t* metadata;
+    int number_of_coordinates;
 } const osrm_annotation_default = {0, 0, 0, 0, 0, 0, 0};
 
 typedef struct osrm_annotation osrm_annotation_t;

@@ -750,6 +750,7 @@ void parse_annotation(osrm_route_legs_t &route, json::Object &annotation)
     {
         const auto duration_array = annotation.values["duration"].get<json::Array>().values;
         route.annotation->duration = static_cast<double  *>(malloc(sizeof(double) * duration_array.size()));
+
         for(int i = 0; i < duration_array.size(); i++)
         {
             route.annotation->duration[i] = duration_array[i].get<json::Number>().value;
@@ -759,6 +760,8 @@ void parse_annotation(osrm_route_legs_t &route, json::Object &annotation)
     {
         const auto distance_array = annotation.values["distance"].get<json::Array>().values;
         route.annotation->distance = static_cast<double  *>(malloc(sizeof(double) * distance_array.size()));
+        route.annotation->number_of_coordinates = distance_array.size();
+        
         for(int i = 0; i < distance_array.size(); i++)
         {
             route.annotation->distance[i] = distance_array[i].get<json::Number>().value;
