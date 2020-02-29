@@ -27,14 +27,14 @@ endif()
 find_package(LibOSRM)
 
 if(NOT ${LibOSRM_FOUND}) 
-    message("libosrm not found")
     execute_process(COMMAND sudo apt install build-essential git cmake pkg-config
                             libbz2-dev libxml2-dev libzip-dev libboost-all-dev
                             lua5.2 liblua5.2-dev libtbb-dev)
-    execute_process(COMMAND mkdir -p build WORKING_DIRECTORY osrm-backend)
-    execute_process(COMMAND cmake .. WORKING_DIRECTORY osrm-backend/build)
-    execute_process(COMMAND cmake --build . -j12 WORKING_DIRECTORY osrm-backend/build)
-    execute_process(COMMAND sudo cmake --build . --target install WORKING_DIRECTORY osrm-backend/build)
+    
+    execute_process(COMMAND mkdir -p build WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}/osrm-backend")
+    execute_process(COMMAND cmake .. WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}/osrm-backend/build")
+    execute_process(COMMAND cmake --build . -j12 WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}/osrm-backend/build")
+    execute_process(COMMAND sudo cmake --build . --target install WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}/osrm-backend/build")
 endif()
 
 
