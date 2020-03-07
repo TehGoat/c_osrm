@@ -1,3 +1,0 @@
-[submodule "osrm-backend"]
-	path = osrm-backend
-	url = https://github.com/TehGoat/osrm-backend.git
