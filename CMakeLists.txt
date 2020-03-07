@@ -6,6 +6,10 @@ include(ExternalProject)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
+execute_process(COMMAND sudo apt install build-essential git cmake pkg-config
+                        libbz2-dev libxml2-dev libzip-dev libboost-all-dev
+                        lua5.2 liblua5.2-dev libtbb-dev)
+
 link_directories("${PROJECT_SOURCE_DIR}/osrm/lib/")
 add_library(c_osrm SHARED c_osrm.cpp)
 
