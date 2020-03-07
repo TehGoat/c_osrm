@@ -144,8 +144,8 @@ struct osrm_intersections
     int number_of_classes;
     enum boolean* entry;
     int number_of_entries;
-    long long in;
-    long long out;
+    int in;
+    int out;
     osrm_lane_t* lanes;
     int number_of_lanes;
 } const osrm_intersections_default = {coordinate_default, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
@@ -199,7 +199,7 @@ struct osrm_annotation
     double* distance;
     double* speed;
     double* weight;
-    long long* nodes;
+    long* nodes;
     int* datasources;
     osrm_metadata_t* metadata;
     int number_of_coordinates;
@@ -250,7 +250,7 @@ struct general_option
     double* radiuses;
     enum boolean generate_hints;
     enum boolean skip_waypoints;
-    char* hints;
+    char** hints;
     enum osrm_approaches* approaches;
     char** exclude;
     int number_of_excludes;

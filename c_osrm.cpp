@@ -130,7 +130,10 @@ enum status osrm_nearest(c_osrm_t *c_osrm, nearest_request_t* request, nearest_r
 
     if(request->general_options.hints != NULL)
     {
-        parameters.exclude.emplace_back(request->general_options.hints);
+        for(int i = 0; i < request->general_options.number_of_coordinates; i++)
+        {
+            parameters.hints.emplace_back(osrm::engine::Hint::FromBase64(request->general_options.hints[i]));
+        }
     }
 
     if(request->general_options.approaches != NULL &&
@@ -294,7 +297,10 @@ enum status osrm_table(c_osrm_t *c_osrm, table_request_t* request, table_result_
 
     if(request->general_options.hints != NULL)
     {
-        parameters.exclude.emplace_back(request->general_options.hints);
+        for(int i = 0; i < request->general_options.number_of_coordinates; i++)
+        {
+            parameters.hints.emplace_back(osrm::engine::Hint::FromBase64(request->general_options.hints[i]));
+        }
     }
 
     if(request->general_options.approaches != NULL &&
@@ -515,7 +521,10 @@ enum status osrm_route(c_osrm_t *c_osrm, route_request_t* request, route_result_
 
     if(request->general_options.hints != NULL)
     {
-        parameters.exclude.emplace_back(request->general_options.hints);
+        for(int i = 0; i < request->general_options.number_of_coordinates; i++)
+        {
+            parameters.hints.emplace_back(osrm::engine::Hint::FromBase64(request->general_options.hints[i]));
+        }
     }
 
     if(request->general_options.approaches != NULL &&
@@ -531,7 +540,6 @@ enum status osrm_route(c_osrm_t *c_osrm, route_request_t* request, route_result_
            parameters.exclude.emplace_back(request->general_options.exclude[i]);
        }
     }
-
 
     engine::api::ResultT osr_result = json::Object();
 
