@@ -26,9 +26,12 @@ enum status osrm_table(c_osrm_t *c_osrm, table_request_t* request, table_result_
 
 enum status osrm_route(c_osrm_t *c_osrm, route_request_t* request, route_result_t** result);
 
+enum status osrm_match(c_osrm_t *c_osrm, match_request_t* request, match_result_t** result);
+
 void nearest_result_destroy(nearest_result_t *value);
 void table_result_destroy(table_result_t *value);
 void route_result_destroy(route_result_t *value);
+void match_result_destroy(match_result_t *value);
 
 
 

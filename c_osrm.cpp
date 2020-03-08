@@ -4,6 +4,7 @@
 #include "osrm/nearest_parameters.hpp"
 #include "osrm/table_parameters.hpp"
 #include "osrm/route_parameters.hpp"
+#include "osrm/match_parameters.hpp"
 
 #include <string>
 #include <iostream>
@@ -22,7 +23,8 @@ char* get_string(std::string key, json::Object &json);
 char* get_string_from_string(json::String &value);
 
 void parse_route(route_result_t *return_result, const json::Array &routes);
-void parse_route_leg(osrm_route_t &route, const json::Array &routes_legs);
+void parse_match_route(match_result_t *return_result, const json::Array &routes);
+osrm_route_legs_t* parse_route_leg(int &number_of_legs, const json::Array &routes_legs);
 void parse_annotation(osrm_route_legs_t &route, json::Object &annotation);
 void parse_step(osrm_route_legs_t &route, json::Array &steps);
 void parse_maneuver(osrm_step_t &step, json::Object &maneuver);
@@ -36,6 +38,7 @@ void destroy_steps(osrm_step_t  *steps, int number_of_steps);
 void destroy_annotation(osrm_annotation_t  *annotation);
 void destroy_route_leg(osrm_route_legs_t *route_legs, int number_of_routes_legs);
 void destroy_route(osrm_route_t *routes, int number_of_routes);
+void destroy_match_route(match_osrm_route_t *routes, int number_of_routes);
 
 c_osrm_t *osrm_create(engine_config_t *config)
 {
@@ -104,24 +107,45 @@ enum status osrm_nearest(c_osrm_t *c_osrm, nearest_request_t* request, nearest_r
     OSRM *osrm =static_cast<OSRM*>(c_osrm->obj);
 
     NearestParameters parameters;
-    parameters.coordinates.emplace_back(
-            util::FloatLongitude{request->general_options.coordinates[0].longitude},
-            util::FloatLatitude{request->general_options.coordinates[0].latitude}
-            );
-
-    parameters.number_of_results = request->number_of_results;
+    
+        for(int i = 0; i < request->general_options.number_of_coordinates; i++)
+    {
+        parameters.coordinates.emplace_back(
+                util::FloatLongitude{request->general_options.coordinates[i].longitude},
+                util::FloatLatitude{request->general_options.coordinates[i].latitude}
+                );
+    }
 
     if(request->general_options.radiuses != NULL )
     {
-        parameters.radiuses.emplace_back(*request->general_options.radiuses);
+        for(int i = 0; i < request->general_options.number_of_coordinates; i++)
+        {
+            if(request->general_options.radiuses[i] == NULL)
+            {
+                parameters.radiuses.emplace_back(boost::optional<double>{});
+                continue;
+            }
+            parameters.radiuses.emplace_back(*request->general_options.radiuses[i]);
+        }
+        
     }
 
     if(request->general_options.bearings != NULL)
     {
-        engine::Bearing bearing{};
-        bearing.bearing = request->general_options.bearings->bearing;
-        bearing.range = request->general_options.bearings->range;
-        parameters.bearings.emplace_back(bearing);
+        for(int i = 0; i < request->general_options.number_of_coordinates; i++)
+        {
+            if(request->general_options.bearings[i] == NULL)
+            {
+                parameters.bearings.emplace_back(boost::optional<osrm::engine::Bearing>{});
+                continue;
+            }
+
+            engine::Bearing bearing{};
+            bearing.bearing = request->general_options.bearings[i]->bearing;
+            bearing.range = request->general_options.bearings[i]->range;
+            parameters.bearings.emplace_back(bearing);
+        }
+        
     }
 
     parameters.generate_hints = request->general_options.generate_hints == TRUE;
@@ -132,14 +156,35 @@ enum status osrm_nearest(c_osrm_t *c_osrm, nearest_request_t* request, nearest_r
     {
         for(int i = 0; i < request->general_options.number_of_coordinates; i++)
         {
+            if(request->general_options.hints[i] == NULL)
+            {
+                parameters.hints.emplace_back(boost::optional<osrm::engine::Hint>{});
+                continue;
+            }
+
             parameters.hints.emplace_back(osrm::engine::Hint::FromBase64(request->general_options.hints[i]));
         }
     }
 
-    if(request->general_options.approaches != NULL &&
-        *request->general_options.approaches == CURB)
+    if(request->general_options.approaches != NULL)
     {
-        parameters.approaches.emplace_back(engine::Approach::CURB);
+        for(int i = 0; i < request->general_options.number_of_coordinates; i++)
+        {
+            if(request->general_options.approaches[i] == NULL)
+            {
+                parameters.approaches.emplace_back(boost::optional<osrm::engine::Approach>{});
+                continue;
+            }
+
+            if(*request->general_options.approaches[i] == CURB)
+            {
+                parameters.approaches.emplace_back(engine::Approach::CURB);
+            }
+            else
+            {
+                parameters.approaches.emplace_back(engine::Approach::UNRESTRICTED);
+            }
+        }
     }
 
     if(request->general_options.exclude != NULL)
@@ -150,7 +195,9 @@ enum status osrm_nearest(c_osrm_t *c_osrm, nearest_request_t* request, nearest_r
        }
     }
 
+    parameters.number_of_results = request->number_of_results;
 
+   
     engine::api::ResultT osr_result = json::Object();
 
     const auto status = osrm->Nearest(parameters, osr_result);
@@ -229,6 +276,85 @@ enum status osrm_table(c_osrm_t *c_osrm, table_request_t* request, table_result_
                 );
     }
 
+    if(request->general_options.radiuses != NULL )
+    {
+        for(int i = 0; i < request->general_options.number_of_coordinates; i++)
+        {
+            if(request->general_options.radiuses[i] == NULL)
+            {
+                parameters.radiuses.emplace_back(boost::optional<double>{});
+                continue;
+            }
+            parameters.radiuses.emplace_back(*request->general_options.radiuses[i]);
+        }
+        
+    }
+
+    if(request->general_options.bearings != NULL)
+    {
+        for(int i = 0; i < request->general_options.number_of_coordinates; i++)
+        {
+            if(request->general_options.bearings[i] == NULL)
+            {
+                parameters.bearings.emplace_back(boost::optional<osrm::engine::Bearing>{});
+                continue;
+            }
+
+            engine::Bearing bearing{};
+            bearing.bearing = request->general_options.bearings[i]->bearing;
+            bearing.range = request->general_options.bearings[i]->range;
+            parameters.bearings.emplace_back(bearing);
+        }
+        
+    }
+
+    parameters.generate_hints = request->general_options.generate_hints == TRUE;
+
+    parameters.skip_waypoints = request->general_options.skip_waypoints == TRUE;
+
+    if(request->general_options.hints != NULL)
+    {
+        for(int i = 0; i < request->general_options.number_of_coordinates; i++)
+        {
+            if(request->general_options.hints[i] == NULL)
+            {
+                parameters.hints.emplace_back(boost::optional<osrm::engine::Hint>{});
+                continue;
+            }
+
+            parameters.hints.emplace_back(osrm::engine::Hint::FromBase64(request->general_options.hints[i]));
+        }
+    }
+
+    if(request->general_options.approaches != NULL)
+    {
+        for(int i = 0; i < request->general_options.number_of_coordinates; i++)
+        {
+            if(request->general_options.approaches[i] == NULL)
+            {
+                parameters.approaches.emplace_back(boost::optional<osrm::engine::Approach>{});
+                continue;
+            }
+
+            if(*request->general_options.approaches[i] == CURB)
+            {
+                parameters.approaches.emplace_back(engine::Approach::CURB);
+            }
+            else
+            {
+                parameters.approaches.emplace_back(engine::Approach::UNRESTRICTED);
+            }
+        }
+    }
+
+    if(request->general_options.exclude != NULL)
+    {
+       for(int i = 0; i < request->general_options.number_of_excludes; i++)
+       {
+           parameters.exclude.emplace_back(request->general_options.exclude[i]);
+       }
+    }
+
     if(request->sources != NULL)
     {
         for(int i = 0; i < request->number_of_sources; i++)
@@ -276,46 +402,6 @@ enum status osrm_table(c_osrm_t *c_osrm, table_request_t* request, table_result_
     }
 
     parameters.scale_factor = request->scale_factor;
-
-
-    if(request->general_options.radiuses != NULL )
-    {
-        parameters.radiuses.emplace_back(*request->general_options.radiuses);
-    }
-
-    if(request->general_options.bearings != NULL)
-    {
-        engine::Bearing bearing{};
-        bearing.bearing = request->general_options.bearings->bearing;
-        bearing.range = request->general_options.bearings->range;
-        parameters.bearings.emplace_back(bearing);
-    }
-
-    parameters.generate_hints = request->general_options.generate_hints == TRUE;
-
-    parameters.skip_waypoints = request->general_options.skip_waypoints == TRUE;
-
-    if(request->general_options.hints != NULL)
-    {
-        for(int i = 0; i < request->general_options.number_of_coordinates; i++)
-        {
-            parameters.hints.emplace_back(osrm::engine::Hint::FromBase64(request->general_options.hints[i]));
-        }
-    }
-
-    if(request->general_options.approaches != NULL &&
-       *request->general_options.approaches == CURB)
-    {
-        parameters.approaches.emplace_back(engine::Approach::CURB);
-    }
-
-    if(request->general_options.exclude != NULL)
-    {
-       for(int i = 0; i < request->general_options.number_of_excludes; i++)
-       {
-           parameters.exclude.emplace_back(request->general_options.exclude[i]);
-       }
-    }
 
     engine::api::ResultT osr_result = json::Object();
 
@@ -407,7 +493,6 @@ enum status osrm_table(c_osrm_t *c_osrm, table_request_t* request, table_result_
     return status::Error;
 }
 
-
 enum status osrm_route(c_osrm_t *c_osrm, route_request_t* request, route_result_t** result)
 {
     OSRM *osrm =static_cast<OSRM*>(c_osrm->obj);
@@ -420,6 +505,85 @@ enum status osrm_route(c_osrm_t *c_osrm, route_request_t* request, route_result_
                 util::FloatLongitude{request->general_options.coordinates[i].longitude},
                 util::FloatLatitude{request->general_options.coordinates[i].latitude}
                 );
+    }
+
+    if(request->general_options.radiuses != NULL )
+    {
+        for(int i = 0; i < request->general_options.number_of_coordinates; i++)
+        {
+            if(request->general_options.radiuses[i] == NULL)
+            {
+                parameters.radiuses.emplace_back(boost::optional<double>{});
+                continue;
+            }
+            parameters.radiuses.emplace_back(*request->general_options.radiuses[i]);
+        }
+        
+    }
+
+    if(request->general_options.bearings != NULL)
+    {
+        for(int i = 0; i < request->general_options.number_of_coordinates; i++)
+        {
+            if(request->general_options.bearings[i] == NULL)
+            {
+                parameters.bearings.emplace_back(boost::optional<osrm::engine::Bearing>{});
+                continue;
+            }
+
+            engine::Bearing bearing{};
+            bearing.bearing = request->general_options.bearings[i]->bearing;
+            bearing.range = request->general_options.bearings[i]->range;
+            parameters.bearings.emplace_back(bearing);
+        }
+        
+    }
+
+    parameters.generate_hints = request->general_options.generate_hints == TRUE;
+
+    parameters.skip_waypoints = request->general_options.skip_waypoints == TRUE;
+
+    if(request->general_options.hints != NULL)
+    {
+        for(int i = 0; i < request->general_options.number_of_coordinates; i++)
+        {
+            if(request->general_options.hints[i] == NULL)
+            {
+                parameters.hints.emplace_back(boost::optional<osrm::engine::Hint>{});
+                continue;
+            }
+
+            parameters.hints.emplace_back(osrm::engine::Hint::FromBase64(request->general_options.hints[i]));
+        }
+    }
+
+    if(request->general_options.approaches != NULL)
+    {
+        for(int i = 0; i < request->general_options.number_of_coordinates; i++)
+        {
+            if(request->general_options.approaches[i] == NULL)
+            {
+                parameters.approaches.emplace_back(boost::optional<osrm::engine::Approach>{});
+                continue;
+            }
+
+            if(*request->general_options.approaches[i] == CURB)
+            {
+                parameters.approaches.emplace_back(engine::Approach::CURB);
+            }
+            else
+            {
+                parameters.approaches.emplace_back(engine::Approach::UNRESTRICTED);
+            }
+        }
+    }
+
+    if(request->general_options.exclude != NULL)
+    {
+       for(int i = 0; i < request->general_options.number_of_excludes; i++)
+       {
+           parameters.exclude.emplace_back(request->general_options.exclude[i]);
+       }
     }
     
     parameters.steps = request->steps == boolean::TRUE;
@@ -500,45 +664,6 @@ enum status osrm_route(c_osrm_t *c_osrm, route_request_t* request, route_result_
         {
             parameters.waypoints.push_back(request->waypoints[i]);
         }
-    }
-
-    if(request->general_options.radiuses != NULL )
-    {
-        parameters.radiuses.emplace_back(*request->general_options.radiuses);
-    }
-
-    if(request->general_options.bearings != NULL)
-    {
-        engine::Bearing bearing{};
-        bearing.bearing = request->general_options.bearings->bearing;
-        bearing.range = request->general_options.bearings->range;
-        parameters.bearings.emplace_back(bearing);
-    }
-
-    parameters.generate_hints = request->general_options.generate_hints == TRUE;
-
-    parameters.skip_waypoints = request->general_options.skip_waypoints == TRUE;
-
-    if(request->general_options.hints != NULL)
-    {
-        for(int i = 0; i < request->general_options.number_of_coordinates; i++)
-        {
-            parameters.hints.emplace_back(osrm::engine::Hint::FromBase64(request->general_options.hints[i]));
-        }
-    }
-
-    if(request->general_options.approaches != NULL &&
-       *request->general_options.approaches == CURB)
-    {
-        parameters.approaches.emplace_back(engine::Approach::CURB);
-    }
-
-    if(request->general_options.exclude != NULL)
-    {
-       for(int i = 0; i < request->general_options.number_of_excludes; i++)
-       {
-           parameters.exclude.emplace_back(request->general_options.exclude[i]);
-       }
     }
 
     engine::api::ResultT osr_result = json::Object();
@@ -622,6 +747,260 @@ enum status osrm_route(c_osrm_t *c_osrm, route_request_t* request, route_result_
     return status::Error;
 }
 
+enum status osrm_match(c_osrm_t *c_osrm, match_request_t* request, match_result_t** result)
+{
+    OSRM *osrm =static_cast<OSRM*>(c_osrm->obj);
+
+    MatchParameters parameters;
+
+    for(int i = 0; i < request->general_options.number_of_coordinates; i++)
+    {
+        parameters.coordinates.emplace_back(
+                util::FloatLongitude{request->general_options.coordinates[i].longitude},
+                util::FloatLatitude{request->general_options.coordinates[i].latitude}
+                );
+    }
+
+    if(request->general_options.radiuses != NULL )
+    {
+        for(int i = 0; i < request->general_options.number_of_coordinates; i++)
+        {
+            if(request->general_options.radiuses[i] == NULL)
+            {
+                parameters.radiuses.emplace_back(boost::optional<double>{});
+                continue;
+            }
+            parameters.radiuses.emplace_back(*request->general_options.radiuses[i]);
+        }
+        
+    }
+
+    if(request->general_options.bearings != NULL)
+    {
+        for(int i = 0; i < request->general_options.number_of_coordinates; i++)
+        {
+            if(request->general_options.bearings[i] == NULL)
+            {
+                parameters.bearings.emplace_back(boost::optional<osrm::engine::Bearing>{});
+                continue;
+            }
+
+            engine::Bearing bearing{};
+            bearing.bearing = request->general_options.bearings[i]->bearing;
+            bearing.range = request->general_options.bearings[i]->range;
+            parameters.bearings.emplace_back(bearing);
+        }
+        
+    }
+
+    parameters.generate_hints = request->general_options.generate_hints == TRUE;
+
+    parameters.skip_waypoints = request->general_options.skip_waypoints == TRUE;
+
+    if(request->general_options.hints != NULL)
+    {
+        for(int i = 0; i < request->general_options.number_of_coordinates; i++)
+        {
+            if(request->general_options.hints[i] == NULL)
+            {
+                parameters.hints.emplace_back(boost::optional<osrm::engine::Hint>{});
+                continue;
+            }
+
+            parameters.hints.emplace_back(osrm::engine::Hint::FromBase64(request->general_options.hints[i]));
+        }
+    }
+
+    if(request->general_options.approaches != NULL)
+    {
+        for(int i = 0; i < request->general_options.number_of_coordinates; i++)
+        {
+            if(request->general_options.approaches[i] == NULL)
+            {
+                parameters.approaches.emplace_back(boost::optional<osrm::engine::Approach>{});
+                continue;
+            }
+
+            if(*request->general_options.approaches[i] == CURB)
+            {
+                parameters.approaches.emplace_back(engine::Approach::CURB);
+            }
+            else
+            {
+                parameters.approaches.emplace_back(engine::Approach::UNRESTRICTED);
+            }
+        }
+    }
+
+    if(request->general_options.exclude != NULL)
+    {
+       for(int i = 0; i < request->general_options.number_of_excludes; i++)
+       {
+           parameters.exclude.emplace_back(request->general_options.exclude[i]);
+       }
+    }
+
+    parameters.steps = request->steps == boolean::TRUE;
+
+    switch(request->geometries)
+    {
+        case GeometriesType::Polyline:
+            parameters.geometries = RouteParameters::GeometriesType::Polyline;
+        break;
+        case GeometriesType::Polyline6:
+            parameters.geometries = RouteParameters::GeometriesType::Polyline6;
+        break;
+        case GeometriesType::GeoJSON:
+            parameters.geometries = RouteParameters::GeometriesType::GeoJSON;
+        break;
+    }
+
+    parameters.annotations = request->annotations == boolean::TRUE;
+
+    switch (request->annotations_type)
+    {
+
+        case None:
+            parameters.annotations_type = RouteParameters::AnnotationsType::None;
+            break;
+        case Duration:
+            parameters.annotations_type = RouteParameters::AnnotationsType::Duration;
+            break;
+        case Nodes:
+            parameters.annotations_type = RouteParameters::AnnotationsType::Nodes;
+            break;
+        case Distance:
+            parameters.annotations_type = RouteParameters::AnnotationsType::Distance;
+            break;
+        case Weight:
+            parameters.annotations_type = RouteParameters::AnnotationsType::Weight;
+            break;
+        case Datasources:
+            parameters.annotations_type = RouteParameters::AnnotationsType::Datasources;
+            break;
+        case Speed:
+            parameters.annotations_type = RouteParameters::AnnotationsType::Speed;
+            break;
+        case All:
+            parameters.annotations_type = RouteParameters::AnnotationsType::All;
+            break;
+    }
+
+    switch(request->overview)
+    {
+        case OverviewType::Simplified:
+            parameters.overview = RouteParameters::OverviewType::Simplified;
+        break;
+        case OverviewType::Full:
+            parameters.overview = RouteParameters::OverviewType::Full;
+        break;
+        case OverviewType::False:
+            parameters.overview = RouteParameters::OverviewType::False;
+        break;
+    }
+
+    if(request->timestamps != NULL)
+    {
+        for(int i = 0; i < request->general_options.number_of_coordinates; i++)
+        {
+            parameters.timestamps.emplace_back(request->timestamps[i]);
+        }
+    }
+
+
+    switch(request->gaps)
+    {
+        case Gap::ignore:
+            parameters.gaps = MatchParameters::GapsType::Ignore;
+        break;
+        case Gap::Split:
+            parameters.gaps = MatchParameters::GapsType::Split;
+        break;
+    }
+
+    parameters.tidy = parameters.tidy == boolean::TRUE;
+
+    if(request->waypoits != NULL)
+    {
+        for(int i = 0; i < request->number_of_waypoints; i++)
+        {
+            parameters.waypoints.emplace_back(request->waypoits[i]);
+        }
+    }
+
+    engine::api::ResultT osr_result = json::Object();
+
+    const auto status = osrm->Match(parameters, osr_result);
+
+    auto &json_result = osr_result.get<json::Object>();
+
+    if(*result != NULL)
+    {
+        free(result);
+    }
+
+
+    match_result_t *return_result = NULL;
+    return_result = (typeof(return_result))malloc(sizeof(*return_result));
+    *return_result = match_result_default;
+
+
+    return_result->code = get_string("code", json_result);
+
+    if (status == Status::Ok)
+    {
+
+        if(json_result.values.find("tracepoints") != json_result.values.end())
+        {
+            const auto waypoints = json_result.values["tracepoints"].get<json::Array>().values;
+
+            return_result->tracepoints = static_cast<match_waypoint_t  *>(malloc(sizeof(match_waypoint_t) * waypoints.size()));
+            return_result->number_of_tracepoints = waypoints.size();
+
+            for(int i = 0; i < waypoints.size(); i++)
+            {
+                auto waypoint = waypoints[i].get<json::Object>();
+
+                return_result->tracepoints[i].hint = get_string("hint", waypoint);
+
+                const auto distance = waypoint.values["distance"].get<json::Number>().value;
+                return_result->tracepoints[i].distance = distance;
+
+                return_result->tracepoints[i].name= get_string("name", waypoint);
+
+                auto location = waypoint.values["location"].get<json::Array>().values;
+
+                return_result->tracepoints[i].location[0] = location[0].get<json::Number>().value;
+                return_result->tracepoints[i].location[1] = location[1].get<json::Number>().value;
+
+
+                return_result->tracepoints[i].matchings_index = waypoint.values["matchings_index"].get<json::Number>().value;
+                return_result->tracepoints[i].waypoint_index = waypoint.values["waypoint_index"].get<json::Number>().value;
+                return_result->tracepoints[i].alternatives_count = waypoint.values["alternatives_count"].get<json::Number>().value;
+
+            }
+        }
+
+        if(json_result.values.find("routes") != json_result.values.end())
+        {
+            const json::Array routes = json_result.values["routes"].get<json::Array>();
+            parse_match_route(return_result, routes);
+        }
+
+        *result = return_result;
+
+        return status::Ok;
+    }
+    else
+    {
+        return_result->message = get_string("message", json_result);
+
+        *result = return_result;
+
+        return status::Error;
+    }
+}
+
 void parse_route(route_result_t *return_result, const json::Array &routes)
 {
     return_result->routes = static_cast<osrm_route_t  *>(malloc(sizeof(osrm_route_t) * routes.values.size()));
@@ -654,7 +1033,8 @@ void parse_route(route_result_t *return_result, const json::Array &routes)
         if(route.values.find("legs") != route.values.end())
         {
             const json::Array routes_legs = route.values["legs"].get<json::Array>();
-            parse_route_leg(return_result->routes[i], routes_legs);
+            return_result->routes[i].legs = 
+            parse_route_leg(return_result->routes[i].number_of_legs, routes_legs);
         }
     }
 }
@@ -685,42 +1065,113 @@ void destroy_route(osrm_route_t *routes, int number_of_routes)
     free(routes);
 }
 
-void parse_route_leg(osrm_route_t &route, const json::Array &routes_legs)
+void parse_match_route(match_result_t *return_result, const json::Array &routes)
 {
-    route.legs = static_cast<osrm_route_legs_t  *>(malloc(sizeof(osrm_route_legs_t) * routes_legs.values.size()));
-    route.number_of_legs = routes_legs.values.size();
+    return_result->matchings = static_cast<match_osrm_route_t  *>(malloc(sizeof(match_osrm_route_t) * routes.values.size()));
+    return_result->number_of_matchings = routes.values.size();
+    for(int i = 0; i < routes.values.size(); i++)
+    {
+        auto route = routes.values[i].get<json::Object>();
+        return_result->matchings[i] = match_osrm_route_default;
+
+        if(route.values.find("duration") != route.values.end())
+        {
+            return_result->matchings[i].duration = route.values["duration"].get<json::Number>().value;
+        }
+        if(route.values.find("distance") != route.values.end())
+        {
+            return_result->matchings[i].distance = route.values["distance"].get<json::Number>().value;
+        }
+        if(route.values.find("weight_name") != route.values.end())
+        {
+            return_result->matchings[i].weight_name = get_string("weight_name", route);
+        }
+        if(route.values.find("weight") != route.values.end())
+        {
+            return_result->matchings[i].distance = route.values["weight"].get<json::Number>().value;
+        }
+        if(route.values.find("geometry") != route.values.end())
+        {
+            return_result->matchings[i].geometry = get_string("geometry", route);
+        }
+        if(route.values.find("legs") != route.values.end())
+        {
+            const json::Array routes_legs = route.values["legs"].get<json::Array>();
+            return_result->matchings[i].legs = 
+            parse_route_leg(return_result->matchings[i].number_of_legs, routes_legs);
+        }
+        if(route.values.find("confidence") != route.values.end())
+        {
+            return_result->matchings[i].confidence = 
+            route.values["confidence"].get<json::Number>().value;
+        }
+    }
+}
+
+void destroy_match_route(match_osrm_route_t *routes, int number_of_routes)
+{
+    if(routes == NULL)
+    {
+        return;
+    }
+
+    for(int i = 0; i < number_of_routes; i++)
+    {
+        if(routes[i].weight_name != NULL)
+        {
+            free(routes[i].weight_name);
+        }
+        if(routes[i].geometry != NULL)
+        {
+            free(routes[i].geometry);
+        }
+        if(routes[i].legs != NULL)
+        {
+            destroy_route_leg(routes[i].legs, routes[i].number_of_legs);
+        }
+    }
+
+    free(routes);
+}
+
+osrm_route_legs_t* parse_route_leg(int &number_of_legs, const json::Array &routes_legs)
+{
+    osrm_route_legs_t * legs = static_cast<osrm_route_legs_t  *>(malloc(sizeof(osrm_route_legs_t) * routes_legs.values.size()));
+    number_of_legs = routes_legs.values.size();
     for(int i = 0; i < routes_legs.values.size(); i++)
     {
         auto route_leg = routes_legs.values[i].get<json::Object>();
-        route.legs[i] = osrm_route_legs_default;
+        legs[i] = osrm_route_legs_default;
 
         if(route_leg.values.find("annotation") != route_leg.values.end())
         {
             auto annotation = route_leg.values["annotation"].get<json::Object>();
-            parse_annotation(route.legs[i], annotation);
+            parse_annotation(legs[i], annotation);
         }
         if(route_leg.values.find("duration") != route_leg.values.end())
         {
-            route.legs[i].duration = route_leg.values["duration"].get<json::Number>().value;
+            legs[i].duration = route_leg.values["duration"].get<json::Number>().value;
         }
         if(route_leg.values.find("summary") != route_leg.values.end())
         {
-            route.legs[i].summary = get_string("summary", route_leg);
+            legs[i].summary = get_string("summary", route_leg);
         }
         if(route_leg.values.find("weight") != route_leg.values.end())
         {
-            route.legs[i].weight = route_leg.values["weight"].get<json::Number>().value;
+            legs[i].weight = route_leg.values["weight"].get<json::Number>().value;
         }
         if(route_leg.values.find("distance") != route_leg.values.end())
         {
-            route.legs[i].distance = route_leg.values["distance"].get<json::Number>().value;
+            legs[i].distance = route_leg.values["distance"].get<json::Number>().value;
         }
         if(route_leg.values.find("steps") != route_leg.values.end())
         {
             auto steps = route_leg.values["steps"].get<json::Array>();
-            parse_step(route.legs[i], steps);
+            parse_step(legs[i], steps);
         }
     }
+
+    return legs;
 }
 
 void destroy_route_leg(osrm_route_legs_t *route_legs, int number_of_routes_legs)
@@ -1296,6 +1747,46 @@ void route_result_destroy(route_result_t *value)
     {
         destroy_route(value->routes, value->number_of_routes);
     }
+
+    free(value);
+}
+
+void match_result_destroy(match_result_t *value)
+{
+    if(value == NULL)
+    {
+        return;
+    }
+
+    if(value->code != NULL)
+    {
+        free(value->code);
+    }
+    if(value->message != NULL)
+    {
+        free(value->message);
+    }
+    if(value->tracepoints != NULL)
+    {
+        for(int i = 0; i < value->number_of_tracepoints; i++)
+        {
+            if(value->tracepoints[i].hint != NULL)
+            {
+                free(value->tracepoints[i].hint);
+            }
+            if(value->tracepoints[i].name != NULL)
+            {
+                free(value->tracepoints[i].name);
+            }
+        }
+
+        free(value->tracepoints);
+    }
+    if(value->matchings != NULL)
+    {
+        destroy_match_route(value->matchings, value->number_of_matchings);
+    }
+
 
     free(value);
 }

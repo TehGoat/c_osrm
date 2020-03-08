@@ -30,6 +30,12 @@ enum GeometriesType
     GeoJSON
 };
 
+enum Gap
+{
+    Split,
+    ignore
+};
+
 enum OverviewType
 {
     Simplified,
@@ -126,6 +132,19 @@ struct waypoint
 } const waypoint_default = {0, 0, 0, {0,0}};
 
 typedef struct waypoint waypoint_t;
+
+struct match_waypoint
+{
+    char* hint;
+    double distance;
+    char* name;
+    double location[2];
+    int matchings_index;
+    int waypoint_index;
+    int alternatives_count;
+} const match_waypoint_default = {0, 0, 0, {0,0}, 0, 0, 0};
+
+typedef struct match_waypoint match_waypoint_t;
 
 struct osrm_lane
 {
@@ -233,6 +252,20 @@ struct osrm_route
 
 typedef struct osrm_route osrm_route_t;
 
+struct match_osrm_route
+{
+    double duration;
+    double distance;
+    char* weight_name;
+    double weight;
+    char* geometry;
+    osrm_route_legs_t* legs;
+    int number_of_legs;
+    float confidence;
+} const match_osrm_route_default = {0, 0, 0, 0, 0, 0, 0};
+
+typedef struct match_osrm_route match_osrm_route_t;
+
 struct osrm_bearing
 {
     short bearing;
@@ -246,12 +279,12 @@ struct general_option
 {
     coordinate_t* coordinates;
     int number_of_coordinates;
-    osrm_bearing_t* bearings;
-    double* radiuses;
+    osrm_bearing_t** bearings;
+    double** radiuses;
     enum boolean generate_hints;
     enum boolean skip_waypoints;
     char** hints;
-    enum osrm_approaches* approaches;
+    enum osrm_approaches** approaches;
     char** exclude;
     int number_of_excludes;
 } const general_options_default = {0, 0, 0, 0, TRUE, FALSE, 0, 0, 0, 0};
@@ -301,6 +334,24 @@ struct route_request
 
 typedef struct route_request route_request_t;
 
+struct match_request 
+{
+    general_options_t general_options;
+    enum boolean steps;
+    enum GeometriesType geometries;
+    enum boolean annotations;
+    enum AnnotationsType annotations_type;
+    enum OverviewType overview;
+    int* timestamps;
+    enum Gap gaps;
+    enum boolean tidy;
+    int* waypoits;
+    int number_of_waypoints;
+}const match_request_default = {general_options_default, FALSE, Polyline, FALSE, 
+                        None, Simplified, 0, Split, FALSE, 0, 0};
+
+typedef struct match_request match_request_t;
+
 
 struct nearest_result
 {
@@ -336,6 +387,19 @@ struct route_result
 } const route_result_default = {0, 0, 0, 0, 0, 0};
 
 typedef struct route_result route_result_t;
+
+struct match_result 
+{
+    char* code;
+    char* message;
+    match_waypoint_t* tracepoints;
+    int number_of_tracepoints;
+    match_osrm_route_t* matchings;
+    int number_of_matchings;
+} const match_result_default = {0, 0};
+
+typedef struct match_result match_result_t;
+
 
 
 #ifdef __cplusplus
