@@ -6,6 +6,7 @@
 #include "osrm/route_parameters.hpp"
 #include "osrm/match_parameters.hpp"
 #include "osrm/trip_parameters.hpp"
+#include "osrm/tile_parameters.hpp"
 
 #include <string>
 #include <iostream>
@@ -1256,6 +1257,46 @@ enum status osrm_trip(c_osrm_t *c_osrm, trip_request_t* request, trip_result_t**
     return status::Error;
 }
 
+enum status osrm_tile(c_osrm_t *c_osrm, tile_request_t* request, tile_result_t** result)
+{
+    OSRM *osrm =static_cast<OSRM*>(c_osrm->obj);
+
+    TileParameters parameters;
+
+    parameters.x = request->x;
+    parameters.y = request->y;
+    parameters.z = request->z;
+    
+
+    engine::api::ResultT osr_result = "";
+
+    const auto status = osrm->Tile(parameters, osr_result);
+
+    auto &json_result = osr_result.get<std::string>();
+
+    if(*result != NULL)
+    {
+        free(result);
+    }
+
+    tile_result_t *return_result = NULL;
+    return_result = (typeof(return_result))malloc(sizeof(*return_result));
+    *return_result = tile_result_default;
+
+    char* return_value;
+    return_value = (char*)malloc(sizeof(char) * (json_result.size() + 1));
+    json_result.copy(return_value, json_result.size() + 1);
+    return_value[json_result.size()] = '\0';
+
+    return_result->result = return_value;
+    return_result->string_length = json_result.size();
+
+    *result = return_result;
+
+    return status == Status::Ok ? status::Ok : status::Error;
+
+}
+
 osrm_route_t* parse_route(int &number_of_routes, const json::Array &routes)
 {
     osrm_route_t* osm_routes = static_cast<osrm_route_t  *>(malloc(sizeof(osrm_route_t) * routes.values.size()));
@@ -2053,7 +2094,6 @@ void trip_result_destroy(trip_result_t *value)
         return;
     }
 
-
     if(value->code != NULL)
     {
         free(value->code);
@@ -2083,5 +2123,20 @@ void trip_result_destroy(trip_result_t *value)
         destroy_route(value->trips, value->number_of_trips);
     }
 
+    free(value);
+}
+
+void tile_result_destroy(tile_result_t *value)
+{
+    if(value == NULL)
+    {
+        return;
+    }
+
+    if(value->result != NULL)
+    {
+        free(value->result);
+    }
+    
     free(value);
 }

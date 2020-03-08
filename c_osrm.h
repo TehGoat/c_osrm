@@ -30,11 +30,14 @@ enum status osrm_match(c_osrm_t *c_osrm, match_request_t* request, match_result_
 
 enum status osrm_trip(c_osrm_t *c_osrm, trip_request_t* request, trip_result_t** result);
 
+enum status osrm_tile(c_osrm_t *c_osrm, tile_request_t* request, tile_result_t** result);
+
 void nearest_result_destroy(nearest_result_t *value);
 void table_result_destroy(table_result_t *value);
 void route_result_destroy(route_result_t *value);
 void match_result_destroy(match_result_t *value);
 void trip_result_destroy(trip_result_t *value);
+void tile_result_destroy(tile_result_t *value);
 
 
 

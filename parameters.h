@@ -392,6 +392,15 @@ struct trip_request
 
 typedef struct trip_request trip_request_t;
 
+struct tile_request 
+{
+    int x;
+    int y;
+    int z;
+}const tile_request_default = {0, 0, 0};
+
+typedef struct tile_request tile_request_t;
+
 
 struct nearest_result
 {
@@ -451,6 +460,14 @@ struct trip_result
 } const trip_result_default = {0, 0, 0, 0, 0, 0};
 
 typedef struct trip_result trip_result_t;
+
+struct tile_result
+{
+    char* result;
+    int string_length;
+} const tile_result_default = {};
+
+typedef struct tile_result tile_result_t;
 
 
 
