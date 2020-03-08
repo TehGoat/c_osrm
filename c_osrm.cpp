@@ -5,6 +5,7 @@
 #include "osrm/table_parameters.hpp"
 #include "osrm/route_parameters.hpp"
 #include "osrm/match_parameters.hpp"
+#include "osrm/trip_parameters.hpp"
 
 #include <string>
 #include <iostream>
@@ -22,7 +23,7 @@ struct c_osrm {
 char* get_string(std::string key, json::Object &json);
 char* get_string_from_string(json::String &value);
 
-void parse_route(route_result_t *return_result, const json::Array &routes);
+osrm_route_t* parse_route(int &number_of_routes, const json::Array &routes);
 void parse_match_route(match_result_t *return_result, const json::Array &routes);
 osrm_route_legs_t* parse_route_leg(int &number_of_legs, const json::Array &routes_legs);
 void parse_annotation(osrm_route_legs_t &route, json::Object &annotation);
@@ -728,7 +729,7 @@ enum status osrm_route(c_osrm_t *c_osrm, route_request_t* request, route_result_
         if(json_result.values.find("routes") != json_result.values.end())
         {
             const json::Array routes = json_result.values["routes"].get<json::Array>();
-            parse_route(return_result, routes);
+            return_result->routes = parse_route(return_result->number_of_routes, routes);
         }
 
         *result = return_result;
@@ -1001,40 +1002,294 @@ enum status osrm_match(c_osrm_t *c_osrm, match_request_t* request, match_result_
     }
 }
 
-void parse_route(route_result_t *return_result, const json::Array &routes)
+enum status osrm_trip(c_osrm_t *c_osrm, trip_request_t* request, trip_result_t** result)
 {
-    return_result->routes = static_cast<osrm_route_t  *>(malloc(sizeof(osrm_route_t) * routes.values.size()));
-    return_result->number_of_routes = routes.values.size();
+    OSRM *osrm =static_cast<OSRM*>(c_osrm->obj);
+
+    TripParameters parameters;
+
+    for(int i = 0; i < request->general_options.number_of_coordinates; i++)
+    {
+        parameters.coordinates.emplace_back(
+                util::FloatLongitude{request->general_options.coordinates[i].longitude},
+                util::FloatLatitude{request->general_options.coordinates[i].latitude}
+                );
+    }
+
+    if(request->general_options.radiuses != NULL )
+    {
+        for(int i = 0; i < request->general_options.number_of_coordinates; i++)
+        {
+            if(request->general_options.radiuses[i] == NULL)
+            {
+                parameters.radiuses.emplace_back(boost::optional<double>{});
+                continue;
+            }
+            parameters.radiuses.emplace_back(*request->general_options.radiuses[i]);
+        }
+        
+    }
+
+    if(request->general_options.bearings != NULL)
+    {
+        for(int i = 0; i < request->general_options.number_of_coordinates; i++)
+        {
+            if(request->general_options.bearings[i] == NULL)
+            {
+                parameters.bearings.emplace_back(boost::optional<osrm::engine::Bearing>{});
+                continue;
+            }
+
+            engine::Bearing bearing{};
+            bearing.bearing = request->general_options.bearings[i]->bearing;
+            bearing.range = request->general_options.bearings[i]->range;
+            parameters.bearings.emplace_back(bearing);
+        }
+        
+    }
+
+    parameters.generate_hints = request->general_options.generate_hints == TRUE;
+
+    parameters.skip_waypoints = request->general_options.skip_waypoints == TRUE;
+
+    if(request->general_options.hints != NULL)
+    {
+        for(int i = 0; i < request->general_options.number_of_coordinates; i++)
+        {
+            if(request->general_options.hints[i] == NULL)
+            {
+                parameters.hints.emplace_back(boost::optional<osrm::engine::Hint>{});
+                continue;
+            }
+
+            parameters.hints.emplace_back(osrm::engine::Hint::FromBase64(request->general_options.hints[i]));
+        }
+    }
+
+    if(request->general_options.approaches != NULL)
+    {
+        for(int i = 0; i < request->general_options.number_of_coordinates; i++)
+        {
+            if(request->general_options.approaches[i] == NULL)
+            {
+                parameters.approaches.emplace_back(boost::optional<osrm::engine::Approach>{});
+                continue;
+            }
+
+            if(*request->general_options.approaches[i] == CURB)
+            {
+                parameters.approaches.emplace_back(engine::Approach::CURB);
+            }
+            else
+            {
+                parameters.approaches.emplace_back(engine::Approach::UNRESTRICTED);
+            }
+        }
+    }
+
+    if(request->general_options.exclude != NULL)
+    {
+       for(int i = 0; i < request->general_options.number_of_excludes; i++)
+       {
+           parameters.exclude.emplace_back(request->general_options.exclude[i]);
+       }
+    }
+
+
+    parameters.roundtrip = request->roundtrip == boolean::TRUE;
+
+    if(request->source == FIRST)
+    {
+        parameters.source = TripParameters::SourceType::First;
+    }
+
+    if(request->destination == LAST)
+    {
+        parameters.destination = TripParameters::DestinationType::Last;
+    }
+
+    parameters.steps = request->steps == boolean::TRUE;
+    parameters.annotations = request->annotations == boolean::TRUE;
+    
+    switch(request->annotations_type)
+    {
+        case AnnotationsType::None:
+            parameters.annotations_type = RouteParameters::AnnotationsType::None;
+        break;
+        case AnnotationsType::Duration:
+            parameters.annotations_type = RouteParameters::AnnotationsType::Duration;
+        break;
+        case AnnotationsType::Nodes:
+            parameters.annotations_type = RouteParameters::AnnotationsType::Nodes;
+        break;
+        case AnnotationsType::Distance:
+            parameters.annotations_type = RouteParameters::AnnotationsType::Distance;
+        break;
+        case AnnotationsType::Weight:
+            parameters.annotations_type = RouteParameters::AnnotationsType::Weight;
+        break;
+        case AnnotationsType::Datasources:
+            parameters.annotations_type = RouteParameters::AnnotationsType::Datasources;
+        break;
+        case AnnotationsType::Speed:
+            parameters.annotations_type = RouteParameters::AnnotationsType::Speed;
+        break;
+        case AnnotationsType::All:
+            parameters.annotations_type = RouteParameters::AnnotationsType::All;
+        break;
+    }
+
+    switch(request->geometries)
+    {
+        case GeometriesType::Polyline:
+            parameters.geometries = RouteParameters::GeometriesType::Polyline;
+        break;
+        case GeometriesType::Polyline6:
+            parameters.geometries = RouteParameters::GeometriesType::Polyline6;
+        break;
+        case GeometriesType::GeoJSON:
+            parameters.geometries = RouteParameters::GeometriesType::GeoJSON;
+        break;
+    }
+
+    switch(request->overview)
+    {
+        case OverviewType::Simplified:
+            parameters.overview = RouteParameters::OverviewType::Simplified;
+        break;
+        case OverviewType::Full:
+            parameters.overview = RouteParameters::OverviewType::Full;
+        break;
+        case OverviewType::False:
+            parameters.overview = RouteParameters::OverviewType::False;
+        break;
+    }
+
+    engine::api::ResultT osr_result = json::Object();
+
+
+    const auto status = osrm->Trip(parameters, osr_result);
+
+    auto &json_result = osr_result.get<json::Object>();
+
+    if(*result != NULL)
+    {
+        free(result);
+    }
+
+    trip_result_t *return_result = NULL;
+    return_result = (typeof(return_result))malloc(sizeof(*return_result));
+    *return_result = trip_result_default;
+
+    return_result->code = get_string("code", json_result);
+
+    if (status == Status::Ok)
+    {
+        if(json_result.values.find("waypoints") != json_result.values.end())
+        {
+            const auto waypoints = json_result.values["waypoints"].get<json::Array>().values;
+
+            return_result->waypoints = static_cast<trip_waypoint_t  *>(malloc(sizeof(trip_waypoint_t) * waypoints.size()));
+            return_result->number_of_waypoints = waypoints.size();
+
+            for(int i = 0; i < waypoints.size(); i++)
+            {
+                auto waypoint = waypoints[i].get<json::Object>();
+                return_result->waypoints[i].name = NULL;
+                return_result->waypoints[i].hint = NULL;
+                if(waypoint.values.find("name") != waypoint.values.end())
+                {
+                    return_result->waypoints[i].name = get_string("name", waypoint);
+                }
+                
+
+                if(waypoint.values.find("hint") != waypoint.values.end())
+                {
+                    return_result->waypoints[i].hint = get_string("hint", waypoint);
+                }
+
+                if(waypoint.values.find("distance") != waypoint.values.end())
+                {
+                    return_result->waypoints[i].distance = waypoint.values["distance"].get<json::Number>().value;
+                }
+
+                if(waypoint.values.find("location") != waypoint.values.end())
+                {
+                    auto location = waypoint.values["location"].get<json::Array>().values;
+                    return_result->waypoints[i].location[0] = location[0].get<json::Number>().value;
+                    return_result->waypoints[i].location[1] = location[1].get<json::Number>().value;
+                }
+
+                if(waypoint.values.find("trips_index") != waypoint.values.end())
+                {
+                    return_result->waypoints[i].trips_index = waypoint.values["trips_index"].get<json::Number>().value;
+                }
+
+                if(waypoint.values.find("waypoint_index") != waypoint.values.end())
+                {
+                    return_result->waypoints[i].waypoint_index = waypoint.values["waypoint_index"].get<json::Number>().value;
+                }
+            }
+        }
+        
+
+
+        if(json_result.values.find("routes") != json_result.values.end())
+        {
+            const json::Array routes = json_result.values["routes"].get<json::Array>();
+            return_result->trips = parse_route(return_result->number_of_trips, routes);
+        }
+
+        *result = return_result;
+        
+        return status::Ok;
+    }
+    else
+    {
+        return_result->message = get_string("message", json_result);
+
+        *result = return_result;
+
+        return status::Error;
+    }
+
+    return status::Error;
+}
+
+osrm_route_t* parse_route(int &number_of_routes, const json::Array &routes)
+{
+    osrm_route_t* osm_routes = static_cast<osrm_route_t  *>(malloc(sizeof(osrm_route_t) * routes.values.size()));
+    number_of_routes = routes.values.size();
     for(int i = 0; i < routes.values.size(); i++)
     {
         auto route = routes.values[i].get<json::Object>();
-        return_result->routes[i] = osrm_route_default;
+        osm_routes[i] = osrm_route_default;
 
         if(route.values.find("duration") != route.values.end())
         {
-            return_result->routes[i].duration = route.values["duration"].get<json::Number>().value;
+            osm_routes[i].duration = route.values["duration"].get<json::Number>().value;
         }
         if(route.values.find("distance") != route.values.end())
         {
-            return_result->routes[i].distance = route.values["distance"].get<json::Number>().value;
+            osm_routes[i].distance = route.values["distance"].get<json::Number>().value;
         }
         if(route.values.find("weight_name") != route.values.end())
         {
-            return_result->routes[i].weight_name = get_string("weight_name", route);
+            osm_routes[i].weight_name = get_string("weight_name", route);
         }
         if(route.values.find("weight") != route.values.end())
         {
-            return_result->routes[i].distance = route.values["weight"].get<json::Number>().value;
+            osm_routes[i].distance = route.values["weight"].get<json::Number>().value;
         }
         if(route.values.find("geometry") != route.values.end())
         {
-            return_result->routes[i].geometry = get_string("geometry", route);
+            osm_routes[i].geometry = get_string("geometry", route);
         }
         if(route.values.find("legs") != route.values.end())
         {
             const json::Array routes_legs = route.values["legs"].get<json::Array>();
-            return_result->routes[i].legs = 
-            parse_route_leg(return_result->routes[i].number_of_legs, routes_legs);
+            osm_routes[i].legs = 
+            parse_route_leg(osm_routes[i].number_of_legs, routes_legs);
         }
     }
 }
@@ -1787,6 +2042,46 @@ void match_result_destroy(match_result_t *value)
         destroy_match_route(value->matchings, value->number_of_matchings);
     }
 
+
+    free(value);
+}
+
+void trip_result_destroy(trip_result_t *value)
+{
+    if(value == NULL)
+    {
+        return;
+    }
+
+
+    if(value->code != NULL)
+    {
+        free(value->code);
+    }
+    if(value->message != NULL)
+    {
+        free(value->message);
+    }
+    if(value->waypoints != NULL)
+    {
+        for(int i = 0; i < value->number_of_waypoints; i++)
+        {
+            if(value->waypoints[i].hint != NULL)
+            {
+                free(value->waypoints[i].hint);
+            }
+            if(value->waypoints[i].name != NULL)
+            {
+                free(value->waypoints[i].name);
+            }
+        }
+
+        free(value->waypoints);
+    }
+    if(value->trips != NULL)
+    {
+        destroy_route(value->trips, value->number_of_trips);
+    }
 
     free(value);
 }

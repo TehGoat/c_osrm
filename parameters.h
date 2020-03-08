@@ -83,6 +83,18 @@ enum continue_straight
     CONTINUE_STRAIGHT_FALSE = 2,
 };
 
+enum trip_start
+{
+    START_ANY = 0,
+    FIRST = 1,
+};
+
+enum trip_end
+{
+    END_ANY = 0,
+    LAST = 1,
+};
+
 struct engine_config
 {
     char* storage_config;
@@ -145,6 +157,18 @@ struct match_waypoint
 } const match_waypoint_default = {0, 0, 0, {0,0}, 0, 0, 0};
 
 typedef struct match_waypoint match_waypoint_t;
+
+struct trip_waypoint
+{
+    char* hint;
+    double distance;
+    char* name;
+    double location[2];
+    int trips_index;
+    int waypoint_index;
+} const trip_waypoint_default = {0, 0, 0, {0,0}, 0, 0};
+
+typedef struct trip_waypoint trip_waypoint_t;
 
 struct osrm_lane
 {
@@ -352,6 +376,22 @@ struct match_request
 
 typedef struct match_request match_request_t;
 
+struct trip_request 
+{
+    general_options_t general_options;
+    enum boolean roundtrip;
+    enum trip_start source;
+    enum trip_end destination;
+    enum boolean steps;
+    enum boolean annotations;
+    enum AnnotationsType annotations_type;
+    enum GeometriesType geometries;
+    enum OverviewType overview;
+}const trip_request_default = {general_options_default, FALSE, START_ANY, END_ANY, FALSE, 
+                                FALSE, None, Polyline, Simplified};
+
+typedef struct trip_request trip_request_t;
+
 
 struct nearest_result
 {
@@ -399,6 +439,18 @@ struct match_result
 } const match_result_default = {0, 0};
 
 typedef struct match_result match_result_t;
+
+struct trip_result
+{
+    char* code;
+    char* message;
+    trip_waypoint_t* waypoints;
+    int number_of_waypoints;
+    osrm_route_t* trips;
+    int number_of_trips;
+} const trip_result_default = {0, 0, 0, 0, 0, 0};
+
+typedef struct trip_result trip_result_t;
 
 
 
