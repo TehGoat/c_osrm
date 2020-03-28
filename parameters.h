@@ -318,7 +318,7 @@ typedef struct general_option general_options_t;
 struct nearest_request
 {
     general_options_t general_options;
-    unsigned number_of_results;
+    int number_of_results;
 } const nearest_request_default = {general_options_default, 1};
 
 typedef struct nearest_request nearest_request_t;
