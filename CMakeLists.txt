@@ -9,6 +9,8 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 link_directories(${LibOSRM_LIBRARY_DIRS})
 add_library(c_osrm SHARED c_osrm.cpp)
 
+find_package(Boost REQUIRED regex date_time chrono filesystem iostreams thread system)
+
 find_package(Git QUIET)
 if(GIT_FOUND AND EXISTS "${PROJECT_SOURCE_DIR}/.git")
 # Update submodules as needed
