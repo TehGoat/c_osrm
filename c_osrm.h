@@ -17,8 +17,9 @@ enum status
 struct c_osrm;
 typedef struct c_osrm c_osrm_t;
 
-c_osrm_t *osrm_create(engine_config_t *config);
-void osrm_destroy(c_osrm_t *osrm);
+void osrm_create(engine_config_t *config, c_osrm_t** return_value); 
+void osrm_destroy_error_message(char* error_message);
+void osrm_destroy(void *osrm);
 
 enum status osrm_nearest(c_osrm_t *c_osrm, nearest_request_t* request, nearest_result_t** result);
 

@@ -18,7 +18,8 @@ using namespace osrm;
 
 struct c_osrm {
     void *obj;
-};
+    char* error_message;
+} const c_osrm_default = {NULL, NULL};
 
 
 char* get_string(std::string key, json::Object &json);
@@ -42,11 +43,15 @@ void destroy_route_leg(osrm_route_legs_t *route_legs, int number_of_routes_legs)
 void destroy_route(osrm_route_t *routes, int number_of_routes);
 void destroy_match_route(match_osrm_route_t *routes, int number_of_routes);
 
-c_osrm_t *osrm_create(engine_config_t *config)
+void osrm_create(engine_config_t *config, c_osrm_t** return_value) 
 {
-    c_osrm_t *osrm;
-    OSRM *osrm_osrm;
+    c_osrm_t *osrm = new c_osrm_t();
+    osrm->error_message = nullptr;
+    osrm->obj = nullptr;
 
+    OSRM *osrm_osrm;
+    try
+    {
     EngineConfig osrm_config;
     osrm_config.storage_config = storage::StorageConfig(boost::filesystem::path(config->storage_config));
     osrm_config.max_locations_trip = config->max_locations_trip;
@@ -90,18 +95,48 @@ c_osrm_t *osrm_create(engine_config_t *config)
     osrm_osrm = new OSRM(osrm_config);
     osrm->obj = osrm_osrm;
 
-    return osrm;
+    *return_value = osrm;
+
+
+    }catch(const std::exception& e) 
+    {
+        // const char* value = e.what();
+        // int lenght = 0;
+        // char current_char = *value;
+        // while (current_char != '\0')
+        // {
+        //     lenght++;
+        // }
+
+        // strcpy(osrm->error_message, value);
+        
+        const std::string value = e.what();
+        osrm->error_message = (char*)malloc(sizeof(char) * (value.size() + 1));
+        value.copy(osrm->error_message, value.size() + 1);
+        osrm->error_message[value.size()] = '\0';
+
+        *return_value = osrm;
+    }
 }
 
-void osrm_destroy(c_osrm_t *c_osrm)
+void osrm_destroy_error_message(char* error_message)
+{
+    if(error_message == nullptr)
+    {
+        return;
+    }
+
+    free(error_message);
+}
+
+void osrm_destroy(void* c_osrm)
 {
     if(c_osrm == nullptr)
     {
         return;
     }
 
-    delete static_cast<OSRM*>(c_osrm->obj);
-    free(c_osrm);
+    delete static_cast<OSRM*>(c_osrm);
 }
 
 enum status osrm_nearest(c_osrm_t *c_osrm, nearest_request_t* request, nearest_result_t** result)
