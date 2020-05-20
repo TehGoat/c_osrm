@@ -139,9 +139,9 @@ void osrm_destroy(void* c_osrm)
     delete static_cast<OSRM*>(c_osrm);
 }
 
-enum status osrm_nearest(c_osrm_t *c_osrm, nearest_request_t* request, nearest_result_t** result)
+enum status osrm_nearest(void *c_osrm, nearest_request_t* request, nearest_result_t** result)
 {
-    OSRM *osrm =static_cast<OSRM*>(c_osrm->obj);
+    OSRM *osrm =static_cast<OSRM*>(c_osrm);
 
     NearestParameters parameters;
     
@@ -299,9 +299,9 @@ enum status osrm_nearest(c_osrm_t *c_osrm, nearest_request_t* request, nearest_r
     }
 }
 
-enum status osrm_table(c_osrm_t *c_osrm, table_request_t* request, table_result_t** result)
+enum status osrm_table(void *c_osrm, table_request_t* request, table_result_t** result)
 {
-    OSRM *osrm =static_cast<OSRM*>(c_osrm->obj);
+    OSRM *osrm =static_cast<OSRM*>(c_osrm);
 
     TableParameters parameters;
 
@@ -530,9 +530,9 @@ enum status osrm_table(c_osrm_t *c_osrm, table_request_t* request, table_result_
     return status::Error;
 }
 
-enum status osrm_route(c_osrm_t *c_osrm, route_request_t* request, route_result_t** result)
+enum status osrm_route(void *c_osrm, route_request_t* request, route_result_t** result)
 {
-    OSRM *osrm =static_cast<OSRM*>(c_osrm->obj);
+    OSRM *osrm =static_cast<OSRM*>(c_osrm);
 
     RouteParameters parameters;
 
@@ -784,9 +784,9 @@ enum status osrm_route(c_osrm_t *c_osrm, route_request_t* request, route_result_
     return status::Error;
 }
 
-enum status osrm_match(c_osrm_t *c_osrm, match_request_t* request, match_result_t** result)
+enum status osrm_match(void *c_osrm, match_request_t* request, match_result_t** result)
 {
-    OSRM *osrm =static_cast<OSRM*>(c_osrm->obj);
+    OSRM *osrm =static_cast<OSRM*>(c_osrm);
 
     MatchParameters parameters;
 
@@ -1038,9 +1038,9 @@ enum status osrm_match(c_osrm_t *c_osrm, match_request_t* request, match_result_
     }
 }
 
-enum status osrm_trip(c_osrm_t *c_osrm, trip_request_t* request, trip_result_t** result)
+enum status osrm_trip(void *c_osrm, trip_request_t* request, trip_result_t** result)
 {
-    OSRM *osrm =static_cast<OSRM*>(c_osrm->obj);
+    OSRM *osrm =static_cast<OSRM*>(c_osrm);
 
     TripParameters parameters;
 
@@ -1292,9 +1292,9 @@ enum status osrm_trip(c_osrm_t *c_osrm, trip_request_t* request, trip_result_t**
     return status::Error;
 }
 
-enum status osrm_tile(c_osrm_t *c_osrm, tile_request_t* request, tile_result_t** result)
+enum status osrm_tile(void *c_osrm, tile_request_t* request, tile_result_t** result)
 {
-    OSRM *osrm =static_cast<OSRM*>(c_osrm->obj);
+    OSRM *osrm =static_cast<OSRM*>(c_osrm);
 
     TileParameters parameters;
 
