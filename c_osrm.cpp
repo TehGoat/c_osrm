@@ -45,71 +45,61 @@ void destroy_match_route(match_osrm_route_t *routes, int number_of_routes);
 
 void osrm_create(engine_config_t *config, c_osrm_t** return_value) 
 {
-    c_osrm_t *osrm = new c_osrm_t();
-    osrm->error_message = nullptr;
-    osrm->obj = nullptr;
+    c_osrm_t *osrm = (typeof(c_osrm_t*))malloc(sizeof(c_osrm_t));
+
+    osrm->error_message = NULL;
+    osrm->obj = NULL;
 
     OSRM *osrm_osrm;
     try
     {
-    EngineConfig osrm_config;
-    osrm_config.storage_config = storage::StorageConfig(boost::filesystem::path(config->storage_config));
-    osrm_config.max_locations_trip = config->max_locations_trip;
-    osrm_config.max_locations_viaroute = config->max_locations_viaroute;
-    osrm_config.max_locations_distance_table = config->max_locations_distance_table;
-    osrm_config.max_locations_map_matching = config->max_locations_map_matching;
-    osrm_config.max_radius_map_matching = config->max_radius_map_matching;
-    osrm_config.max_results_nearest = config->max_results_nearest;
-    osrm_config.max_alternatives = config->max_alternatives;
-    osrm_config.use_shared_memory = config->use_shared_memory;
-    if(config->memory_file != NULL)
-    {
-        osrm_config.memory_file = config->memory_file;
-    }
-    osrm_config.use_mmap = config->use_mmap;
-    if(config->verbosity != NULL)
-    {
-        osrm_config.verbosity = config->verbosity;
-    }
-    if(config->dataset_name != NULL)
-    {
-        osrm_config.dataset_name = config->dataset_name;
-    }
+        EngineConfig osrm_config;
+        osrm_config.storage_config = storage::StorageConfig(boost::filesystem::path(config->storage_config));
+        osrm_config.max_locations_trip = config->max_locations_trip;
+        osrm_config.max_locations_viaroute = config->max_locations_viaroute;
+        osrm_config.max_locations_distance_table = config->max_locations_distance_table;
+        osrm_config.max_locations_map_matching = config->max_locations_map_matching;
+        osrm_config.max_radius_map_matching = config->max_radius_map_matching;
+        osrm_config.max_results_nearest = config->max_results_nearest;
+        osrm_config.max_alternatives = config->max_alternatives;
+        osrm_config.use_shared_memory = config->use_shared_memory;
+        if(config->memory_file != NULL)
+        {
+            osrm_config.memory_file = config->memory_file;
+        }
+        osrm_config.use_mmap = config->use_mmap;
+        if(config->verbosity != NULL)
+        {
+            osrm_config.verbosity = config->verbosity;
+        }
+        if(config->dataset_name != NULL)
+        {
+            osrm_config.dataset_name = config->dataset_name;
+        }
 
-    switch (config->algorithm)
-    {
+        switch (config->algorithm)
+        {
 
-        case Algorithm::CH:
-            osrm_config.algorithm = EngineConfig::Algorithm::CH;
-            break;
-        case Algorithm::CoreCH:
-            osrm_config.algorithm = EngineConfig::Algorithm::CoreCH;
-            break;
-        case Algorithm::MLD:
-            osrm_config.algorithm = EngineConfig::Algorithm::MLD;
-            break;
-    }
+            case Algorithm::CH:
+                osrm_config.algorithm = EngineConfig::Algorithm::CH;
+                break;
+            case Algorithm::CoreCH:
+                osrm_config.algorithm = EngineConfig::Algorithm::CoreCH;
+                break;
+            case Algorithm::MLD:
+                osrm_config.algorithm = EngineConfig::Algorithm::MLD;
+                break;
+        }
 
 
-    osrm = (typeof(osrm))malloc(sizeof(*osrm));
-    osrm_osrm = new OSRM(osrm_config);
-    osrm->obj = osrm_osrm;
+        osrm_osrm = new OSRM(osrm_config);
+        osrm->obj = osrm_osrm;
 
-    *return_value = osrm;
+        *return_value = osrm;
 
 
     }catch(const std::exception& e) 
     {
-        // const char* value = e.what();
-        // int lenght = 0;
-        // char current_char = *value;
-        // while (current_char != '\0')
-        // {
-        //     lenght++;
-        // }
-
-        // strcpy(osrm->error_message, value);
-        
         const std::string value = e.what();
         osrm->error_message = (char*)malloc(sizeof(char) * (value.size() + 1));
         value.copy(osrm->error_message, value.size() + 1);
