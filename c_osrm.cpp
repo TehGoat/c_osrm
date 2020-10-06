@@ -1,4 +1,5 @@
 #include "c_osrm.h"
+#include "osrm/json_container.hpp"
 #include "osrm/engine_config.hpp"
 #include "osrm/osrm.hpp"
 #include "osrm/nearest_parameters.hpp"
@@ -1345,7 +1346,7 @@ osrm_route_t* parse_route(int &number_of_routes, const json::Array &routes)
         }
         if(route.values.find("weight") != route.values.end())
         {
-            osm_routes[i].distance = route.values["weight"].get<json::Number>().value;
+            osm_routes[i].weight = route.values["weight"].get<json::Number>().value;
         }
         if(route.values.find("geometry") != route.values.end())
         {
@@ -1358,6 +1359,7 @@ osrm_route_t* parse_route(int &number_of_routes, const json::Array &routes)
             parse_route_leg(osm_routes[i].number_of_legs, routes_legs);
         }
     }
+    return osm_routes;
 }
 
 void destroy_route(osrm_route_t *routes, int number_of_routes)
