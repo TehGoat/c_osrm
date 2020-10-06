@@ -1,5 +1,4 @@
 #include "c_osrm.h"
-#include "osrm/util/json_renderer.hpp"
 #include "osrm/json_container.hpp"
 #include "osrm/engine_config.hpp"
 #include "osrm/osrm.hpp"
@@ -701,9 +700,6 @@ enum status osrm_route(void *c_osrm, route_request_t* request, route_result_t** 
     const auto status = osrm->Route(parameters, osr_result);
 
     auto &json_result = osr_result.get<json::Object>();
-    std::ostringstream buf;
-    osrm::util::json::render(buf, json_result);
-    std::cout << buf.str();
 
     if(*result != NULL)
     {
@@ -1363,6 +1359,7 @@ osrm_route_t* parse_route(int &number_of_routes, const json::Array &routes)
             parse_route_leg(osm_routes[i].number_of_legs, routes_legs);
         }
     }
+    return osm_routes;
 }
 
 void destroy_route(osrm_route_t *routes, int number_of_routes)
