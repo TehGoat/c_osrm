@@ -1,4 +1,5 @@
 #include "c_osrm.h"
+#include "osrm/json_container.hpp"
 #include "osrm/engine_config.hpp"
 #include "osrm/osrm.hpp"
 #include "osrm/nearest_parameters.hpp"
