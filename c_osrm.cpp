@@ -1346,7 +1346,7 @@ osrm_route_t* parse_route(int &number_of_routes, const json::Array &routes)
         }
         if(route.values.find("weight") != route.values.end())
         {
-            osm_routes[i].distance = route.values["weight"].get<json::Number>().value;
+            osm_routes[i].weight = route.values["weight"].get<json::Number>().value;
         }
         if(route.values.find("geometry") != route.values.end())
         {
