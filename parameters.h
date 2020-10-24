@@ -417,11 +417,12 @@ struct table_result
     char* code;
     char* message;
     double* durations;
+    double* distances;
     waypoint_t* sources;
     waypoint_t* destinations;
     int number_of_sources;
     int number_of_destinations;
-} const table_result_default = {0, 0, 0, 0, 0, 0, 0};
+} const table_result_default = {0, 0, 0, 0, 0, 0, 0, 0};
 
 typedef struct table_result table_result_t;
 

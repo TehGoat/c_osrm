@@ -493,7 +493,7 @@ enum status osrm_table(void *c_osrm, table_request_t* request, table_result_t** 
 
         }
 
-        return_result->durations = static_cast<double*>(malloc(sizeof(double) * sources.size() * durations.size()));
+        return_result->durations = static_cast<double*>(malloc(sizeof(double) * sources.size() * destinations.size()));
         for(int i = 0; i < sources.size(); i++)
         {
             const auto durations_element = durations[i].get<json::Array>().values;
@@ -501,6 +501,20 @@ enum status osrm_table(void *c_osrm, table_request_t* request, table_result_t** 
             for(int j = 0; j < durations_element.size(); j++)
             {
                 return_result->durations[i * sources.size() +j] = durations_element[j].get<json::Number>().value;
+            }
+        }
+
+        if(json_result.values.find("distances") != json_result.values.end()){
+            const auto distances= json_result.values["distances"].get<json::Array>().values;
+            return_result->distances = static_cast<double*>(malloc(sizeof(double) * sources.size() * destinations.size()));
+            for(unsigned int i = 0; i < sources.size(); i++)
+            {
+                const auto distances_element = distances[i].get<json::Array>().values;
+
+                for(unsigned int j = 0; j < distances_element.size(); j++)
+                {
+                    return_result->distances[i * sources.size() +j] = distances_element[j].get<json::Number>().value;
+                }
             }
         }
 
