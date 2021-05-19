@@ -1546,6 +1546,7 @@ void parse_annotation(osrm_route_legs_t &route, json::Object &annotation)
     {
         const auto duration_array = annotation.values["duration"].get<json::Array>().values;
         route.annotation->duration = static_cast<double  *>(malloc(sizeof(double) * duration_array.size()));
+        route.annotation->number_of_coordinates = duration_array.size();
 
         for(int i = 0; i < duration_array.size(); i++)
         {
@@ -1567,6 +1568,8 @@ void parse_annotation(osrm_route_legs_t &route, json::Object &annotation)
     {
         const auto datasources_array = annotation.values["datasources"].get<json::Array>().values;
         route.annotation->datasources = static_cast<int  *>(malloc(sizeof(int) * datasources_array.size()));
+        route.annotation->number_of_coordinates = datasources_array.size();
+
         for(int i = 0; i < datasources_array.size(); i++)
         {
             route.annotation->datasources[i] = datasources_array[i].get<json::Number>().value;
@@ -1575,7 +1578,9 @@ void parse_annotation(osrm_route_legs_t &route, json::Object &annotation)
     if(annotation.values.find("nodes") != annotation.values.end())
     {
         const auto nodes_array = annotation.values["nodes"].get<json::Array>().values;
-        route.annotation->datasources = static_cast<int  *>(malloc(sizeof(int) * nodes_array.size()));
+        route.annotation->nodes = static_cast<long  *>(malloc(sizeof(long) * nodes_array.size()));
+        route.annotation->number_of_coordinates = nodes_array.size();
+
         for(int i = 0; i < nodes_array.size(); i++)
         {
             route.annotation->nodes[i] = nodes_array[i].get<json::Number>().value;
@@ -1585,6 +1590,8 @@ void parse_annotation(osrm_route_legs_t &route, json::Object &annotation)
     {
         const auto weight_array = annotation.values["weight"].get<json::Array>().values;
         route.annotation->weight = static_cast<double  *>(malloc(sizeof(double) * weight_array.size()));
+        route.annotation->number_of_coordinates = weight_array.size();
+
         for(int i = 0; i < weight_array.size(); i++)
         {
             route.annotation->weight[i] = weight_array[i].get<json::Number>().value;
@@ -1594,6 +1601,8 @@ void parse_annotation(osrm_route_legs_t &route, json::Object &annotation)
     {
         const auto speed_array = annotation.values["speed"].get<json::Array>().values;
         route.annotation->speed = static_cast<double  *>(malloc(sizeof(double) * speed_array.size()));
+        route.annotation->number_of_coordinates = speed_array.size();
+
         for(int i = 0; i < speed_array.size(); i++)
         {
             route.annotation->speed[i] = speed_array[i].get<json::Number>().value;
