@@ -1023,9 +1023,9 @@ enum status osrm_match(void *c_osrm, match_request_t* request, match_result_t** 
             }
         }
 
-        if(json_result.values.find("routes") != json_result.values.end())
+        if(json_result.values.find("matchings") != json_result.values.end())
         {
-            const json::Array routes = json_result.values["routes"].get<json::Array>();
+            const json::Array routes = json_result.values["matchings"].get<json::Array>();
             parse_match_route(return_result, routes);
         }
 
@@ -1425,7 +1425,7 @@ void parse_match_route(match_result_t *return_result, const json::Array &routes)
         }
         if(route.values.find("weight") != route.values.end())
         {
-            return_result->matchings[i].distance = route.values["weight"].get<json::Number>().value;
+            return_result->matchings[i].weight = route.values["weight"].get<json::Number>().value;
         }
         if(route.values.find("geometry") != route.values.end())
         {
@@ -1871,6 +1871,20 @@ void parse_intersections(osrm_step_t &step, json::Array &intersections)
                 step.intersections[i].classes[j] = get_string_from_string(classes.values[j].get<json::String>());
             }
         }
+        if(intersection.values.find("entry") != intersection.values.end())
+        {
+            auto entries = intersection.values["entry"].get<json::Array>();
+            step.intersections[i].entry = static_cast<boolean*>(malloc(sizeof(boolean*) * entries.values.size()));
+            step.intersections[i].number_of_entries = entries.values.size();
+            for(int j = 0; j < entries.values.size(); j++)
+            {
+                if (entries.values[j].is<json::True>()) {
+                    step.intersections[i].entry[j] = boolean::TRUE;
+                } else {
+                    step.intersections[i].entry[j] = boolean::FALSE;
+                }
+            }
+        }
         if(intersection.values.find("lanes") != intersection.values.end())
         {
             auto lanes = intersection.values["lanes"].get<json::Array>();
@@ -1903,6 +1917,9 @@ void destroy_intersections(osrm_intersections_t *intersections, int number_of_in
         {
             free(intersections[i].bearings);
         }
+        if(intersections[i].entry != NULL) {
+            free(intersections[i].entry);
+        }
 
         destroy_lanes(intersections[i].lanes, intersections[i].number_of_lanes);
     }
@@ -1922,6 +1939,7 @@ void parse_lanes(osrm_intersections_t &intersections, json::Array &lanes)
         if(lane.values.find("indications") != lane.values.end())
         {
             auto indications = lane.values["indications"].get<json::Array>();
+            intersections.lanes[i].number_of_indications = indications.values.size();
             intersections.lanes[i].indications = static_cast<char **>(malloc(sizeof(char *) * indications.values.size()));
             for(int j = 0; j < indications.values.size(); j++)
             {
@@ -1958,7 +1976,7 @@ void destroy_lanes(osrm_lane_t  *lanes, int number_of_lanes)
 
 char* get_string(std::string key, json::Object &json)
 {
-    char* return_value;
+    char* return_value = NULL;
     if(json.values.find(key) != json.values.end())
     {
         const auto value = json.values[key].get<json::String>().value;

@@ -173,8 +173,9 @@ typedef struct trip_waypoint trip_waypoint_t;
 struct osrm_lane
 {
     char** indications;
+    int number_of_indications;
     enum boolean valid;
-} const osrm_lane_default = {0, FALSE};
+} const osrm_lane_default = {0, 0, FALSE};
 
 typedef struct osrm_lane osrm_lane_t;
 
