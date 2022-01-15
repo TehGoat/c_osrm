@@ -1275,9 +1275,9 @@ enum status osrm_trip(void *c_osrm, trip_request_t* request, trip_result_t** res
         
 
 
-        if(json_result.values.find("routes") != json_result.values.end())
+        if(json_result.values.find("trips") != json_result.values.end())
         {
-            const json::Array routes = json_result.values["routes"].get<json::Array>();
+            const json::Array routes = json_result.values["trips"].get<json::Array>();
             return_result->trips = parse_route(return_result->number_of_trips, routes);
         }
 
